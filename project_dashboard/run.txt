@@ -1,0 +1,21 @@
+Exit broken venv
+deactivate
+rm -rf venv
+
+# Install packages directly (safe for WSL)
+pip3 install --break-system-packages Flask Flask-SQLAlchemy Flask-Login Flask-WTF WTForms email-validator
+
+# Create simple database init script
+cat > init_db.py << 'EOF'
+from app import app, db
+
+with app.app_context():
+    db.create_all()
+    print('✅ Database created!')
+EOF
+
+# Initialize database
+python3 init_db.py
+
+# Run your app
+python3 app.py

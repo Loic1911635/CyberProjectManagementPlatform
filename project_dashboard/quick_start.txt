@@ -1,0 +1,11 @@
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Initialize database
+flask init-db
+
+# 3. Create test user (optional)
+flask seed-db
+
+# 4. Run application
+python app.py

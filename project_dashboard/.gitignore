@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual Environment
+venv/
+env/
+
+# Database (DON'T COMMIT THIS!)
+*.db
+*.sqlite3
+cyberpm.db
+
+# Backup files
+*.OLD
+*.old
+*.bak
+
+# Setup scripts (optional)
+setup_*.py
+complete_setup.sh
+init_db.py
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.flaskenv
