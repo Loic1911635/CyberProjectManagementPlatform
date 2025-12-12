@@ -2,73 +2,246 @@
 
 {% block content %}
 <div class="container">
-    <h1>{{ project.name }}</h1>
-    <p>{{ project.description }}</p>
+    <div class="row align-items-start mb-4">
+        <div class="col-md-8">
+            <h1><i class="fas fa-folder-open"></i> {{ project.name }}</h1>
+            <p style="color: #4a5568; font-size: 1.05rem;">{{ project.description }}</p>
+        </div>
+        <div class="col-md-4 text-end">
+            <a href="{{ url_for('create_task', project_id=project.id) }}" class="btn btn-primary btn-lg"><i class="fas fa-plus-circle"></i> New Task</a>
+        </div>
+    </div>
 
-    <a href="{{ url_for('create_task', project_id=project.id) }}" class="btn btn-primary mb-3">+ New Task</a>
+    <!-- Add Member Section -->
+    <div class="card mb-5">
+        <div class="card-header">
+            <i class="fas fa-user-plus"></i> Add Team Member
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('add_member', project_id=project.id) }}">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-8">
+                        <label class="form-label"><i class="fas fa-search"></i> Search Users</label>
+                        <input type="text" id="username-search" class="form-control form-control-lg" placeholder="Type a username..." autocomplete="off">
+                        <div id="search-results" class="list-group mt-2" style="display:none; position: absolute; width: 450px; z-index: 1000;"></div>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" id="add-btn" class="btn btn-success btn-lg w-100" disabled>
+                            <i class="fas fa-check"></i> Add Member
+                        </button>
+                    </div>
+                </div>
+                <input type="hidden" id="selected-user-id" name="user_id" value="">
+            </form>
+            <small style="color: #718096; margin-top: 1rem; display: block;"><i class="fas fa-info-circle"></i> Type to search for registered users</small>
+        </div>
+    </div>
 
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5>To Do</h5>
-                    <p class="display-4">{{ task_stats.todo }}</p>
-                </div>
-            </div>
+    <!-- Current Team Members -->
+    <div class="card mb-5">
+        <div class="card-header">
+            <i class="fas fa-users"></i> Team Members ({{ project.members|length + 1 }})
         </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5>In Progress</h5>
-                    <p class="display-4">{{ task_stats.in_progress }}</p>
+        <div class="card-body">
+            <div class="row">
+                <!-- Project Owner -->
+                <div class="col-md-4 mb-3">
+                    <div class="card" style="border: 2px solid #667eea;">
+                        <div class="card-body text-center">
+                            <i class="fas fa-crown" style="color: #667eea; font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
+                            <h6 class="mb-1"><strong>{{ project.owner.username }}</strong></h6>
+                            <small style="color: #718096;">Project Owner</small>
+                            <div style="margin-top: 0.75rem; color: #667eea; font-size: 0.85rem;">
+                                <i class="fas fa-star"></i> Owner
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5>Done</h5>
-                    <p class="display-4">{{ task_stats.done }}</p>
+
+                <!-- Team Members -->
+                {% for member in project.members %}
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <i class="fas fa-user-circle" style="color: #667eea; font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
+                            <h6 class="mb-1"><strong>{{ member.username }}</strong></h6>
+                            <small style="color: #718096;">{{ member.email }}</small>
+                            <div style="margin-top: 0.75rem;">
+                                <form method="POST" action="{{ url_for('remove_member', project_id=project.id, user_id=member.id) }}" style="display: inline;" onclick="return confirm('Remove {{ member.username }} from project?')">
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        <i class="fas fa-trash"></i> Remove
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5>Total</h5>
-                    <p class="display-4">{{ task_stats.total }}</p>
-                </div>
+                {% endfor %}
             </div>
         </div>
     </div>
 
-    <h3>Tasks</h3>
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Title</th>
-                <th>Status</th>
-                <th>Priority</th>
-                <th>Assigned</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for task in tasks %}
-            <tr>
-                <td>{{ task.title }}</td>
-                <td><span class="badge bg-secondary">{{ task.status }}</span></td>
-                <td>{{ task.priority }}</td>
-                <td>{{ task.assigned_user.username if task.assigned_user else 'Unassigned' }}</td>
-                <td>
-                    <a href="{{ url_for('edit_task', task_id=task.id) }}" class="btn btn-sm btn-warning">Edit</a>
-                    <form method="POST" action="{{ url_for('delete_task', task_id=task.id) }}" style="display:inline;">
-                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="row mb-5">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <h5><i class="fas fa-circle-notch"></i> To Do</h5>
+                <div class="display-4">{{ task_stats.todo }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <h5><i class="fas fa-spinner"></i> In Progress</h5>
+                <div class="display-4">{{ task_stats.in_progress }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <h5><i class="fas fa-check-circle"></i> Done</h5>
+                <div class="display-4">{{ task_stats.done }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <h5><i class="fas fa-chart-pie"></i> Total</h5>
+                <div class="display-4">{{ task_stats.total }}</div>
+            </div>
+        </div>
+    </div>
+
+    <h3><i class="fas fa-list-check"></i> Project Tasks</h3>
+    {% if tasks %}
+    <div class="table-responsive">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th><i class="fas fa-heading"></i> Title</th>
+                    <th><i class="fas fa-flag"></i> Status</th>
+                    <th><i class="fas fa-exclamation"></i> Priority</th>
+                    <th><i class="fas fa-user"></i> Assigned</th>
+                    <th><i class="fas fa-cog"></i> Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                <tr>
+                    <td><strong style="color: #1a202c;">{{ task.title }}</strong></td>
+                    <td>
+                        {% if task.status == 'todo' %}
+                            <span class="badge" style="background: #cbd5e0; color: #1a202c;"><i class="fas fa-circle-notch"></i> To Do</span>
+                        {% elif task.status == 'in_progress' %}
+                            <span class="badge" style="background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%); color: white;"><i class="fas fa-spinner"></i> In Progress</span>
+                        {% else %}
+                            <span class="badge" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white;"><i class="fas fa-check-circle"></i> Done</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if task.priority == 'low' %}
+                            <span class="badge" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white;"><i class="fas fa-arrow-down"></i> Low</span>
+                        {% elif task.priority == 'medium' %}
+                            <span class="badge" style="background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%); color: white;"><i class="fas fa-equals"></i> Medium</span>
+                        {% else %}
+                            <span class="badge" style="background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%); color: white;"><i class="fas fa-arrow-up"></i> High</span>
+                        {% endif %}
+                    </td>
+                    <td style="color: #4a5568;">{{ task.assigned_to.username if task.assigned_to else '<em>Unassigned</em>' }}</td>
+                    <td>
+                        <a href="{{ url_for('edit_task', task_id=task.id) }}" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>
+                        <form method="POST" action="{{ url_for('delete_task', task_id=task.id) }}" style="display:inline;" onclick="return confirm('Delete this task?')">
+                            <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> No tasks yet. <a href="{{ url_for('create_task', project_id=project.id) }}" style="font-weight: 600;">Create one now!</a>
+    </div>
+    {% endif %}
 </div>
+
+<script>
+let selectedUser = null;
+
+document.getElementById('username-search').addEventListener('input', async function(e) {
+    const query = e.target.value.trim();
+    const resultsDiv = document.getElementById('search-results');
+    
+    if (query.length < 1) {
+        resultsDiv.style.display = 'none';
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/search-users?q=${encodeURIComponent(query)}`);
+        const users = await response.json();
+        
+        resultsDiv.innerHTML = '';
+        
+        if (users.length === 0) {
+            resultsDiv.innerHTML = '<div class="list-group-item disabled">❌ No users found</div>';
+        } else {
+            users.forEach(user => {
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'list-group-item list-group-item-action';
+                item.innerHTML = `<strong>${user.username}</strong> <small style="color: #718096;">${user.email}</small>`;
+                item.onclick = function() {
+                    selectedUser = user;
+                    document.getElementById('username-search').value = user.username;
+                    document.getElementById('selected-user-id').value = user.id;
+                    document.getElementById('add-btn').disabled = false;
+                    resultsDiv.style.display = 'none';
+                };
+                resultsDiv.appendChild(item);
+            });
+        }
+        
+        resultsDiv.style.display = 'block';
+    } catch (error) {
+        console.error('Search error:', error);
+    }
+});
+
+// Hide results when clicking outside
+document.addEventListener('click', function(e) {
+    if (e.target.id !== 'username-search') {
+        document.getElementById('search-results').style.display = 'none';
+    }
+});
+</script>
+
+<style>
+.list-group {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.list-group-item {
+    border: none;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #e2e8f0;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.list-group-item:last-child {
+    border-bottom: none;
+}
+
+.list-group-item:hover {
+    background: #f7fafc;
+    transform: translateX(4px);
+}
+
+.list-group-item.disabled {
+    background: #f0f0f0;
+    color: #999;
+    cursor: not-allowed;
+}
+</style>
 {% endblock %}
