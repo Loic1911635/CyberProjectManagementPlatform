@@ -1,60 +1,447 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container">
-    <h1>Dashboard</h1>
+<style>
+    :root {
+        --primary: #667eea;
+        --primary-dark: #764ba2;
+        --accent: #00d4ff;
+        --success: #48bb78;
+        --warning: #ed8936;
+        --danger: #f56565;
+        --bg-light: #f7fafc;
+        --text-dark: #1a202c;
+        --text-muted: #718096;
+        --card-shadow: 0 10px 35px rgba(102, 126, 234, 0.15);
+    }
 
-    <div class="row mb-4">
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Projects</h5>
-                    <p class="card-text display-4">{{ stats.total_projects }}</p>
-                </div>
-            </div>
+    body {
+        background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    }
+
+    .navbar {
+        background: white;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        padding: 15px 0;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        animation: slideDown 0.5s ease-out;
+    }
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .navbar-brand {
+        font-size: 24px;
+        font-weight: 700;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .navbar-brand i {
+        font-size: 28px;
+        -webkit-text-fill-color: var(--primary);
+    }
+
+    .navbar-welcome {
+        flex: 1;
+        text-align: center;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--text-dark);
+        animation: fadeIn 0.6s ease-out 0.2s both;
+    }
+
+    .navbar-welcome-label {
+        color: var(--text-muted);
+        font-size: 12px;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .navbar-welcome-name {
+        color: var(--primary);
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    .logout-btn {
+        padding: 10px 20px;
+        background: linear-gradient(135deg, var(--danger) 0%, #e53e3e 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .logout-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(245, 101, 101, 0.3);
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 60px 20px;
+    }
+
+    .header-section {
+        margin-bottom: 60px;
+        animation: fadeInUp 0.6s ease-out 0.1s both;
+        text-align: center;
+    }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .header-section h1 {
+        font-size: 48px;
+        color: var(--text-dark);
+        margin-bottom: 12px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+    }
+
+    .header-section p {
+        color: var(--text-muted);
+        font-size: 16px;
+        margin-bottom: 30px;
+    }
+
+    .btn-primary {
+        padding: 12px 28px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .btn-primary::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.2);
+        transition: left 0.3s ease;
+    }
+
+    .btn-primary:hover::before {
+        left: 100%;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4);
+    }
+
+    .projects-section h2 {
+        font-size: 42px;
+        color: var(--text-dark);
+        margin-bottom: 40px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+        animation: fadeInUp 0.6s ease-out 0.2s both;
+        text-align: center;
+    }
+
+    .projects-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 25px;
+    }
+
+    .project-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        box-shadow: var(--card-shadow);
+        transition: all 0.3s ease;
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        cursor: pointer;
+        animation: fadeInUp 0.6s ease-out both;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .project-card:nth-child(1) { animation-delay: 0.3s; }
+    .project-card:nth-child(2) { animation-delay: 0.4s; }
+    .project-card:nth-child(3) { animation-delay: 0.5s; }
+    .project-card:nth-child(4) { animation-delay: 0.6s; }
+    .project-card:nth-child(5) { animation-delay: 0.7s; }
+    .project-card:nth-child(6) { animation-delay: 0.8s; }
+
+    .project-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), transparent);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .project-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 25px 60px rgba(102, 126, 234, 0.2);
+    }
+
+    .project-card:hover::before {
+        opacity: 1;
+    }
+
+    .project-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 45px;
+        height: 45px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        color: white;
+        font-size: 22px;
+        margin-bottom: 15px;
+    }
+
+    .project-name {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-dark);
+        margin-bottom: 8px;
+    }
+
+    .project-desc {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-bottom: 15px;
+        line-height: 1.5;
+    }
+
+    .project-stats {
+        display: flex;
+        gap: 15px;
+        padding-top: 15px;
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .project-stat {
+        flex: 1;
+        text-align: center;
+    }
+
+    .project-stat-value {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--primary);
+    }
+
+    .project-stat-label {
+        font-size: 11px;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .project-link {
+        display: inline-block;
+        margin-top: 15px;
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    .project-link::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: var(--primary);
+        transition: width 0.3s ease;
+    }
+
+    .project-link:hover::after {
+        width: 100%;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        animation: fadeInUp 0.6s ease-out 0.3s both;
+    }
+
+    .empty-state-icon {
+        font-size: 80px;
+        color: rgba(102, 126, 234, 0.2);
+        margin-bottom: 20px;
+    }
+
+    .empty-state-text {
+        font-size: 18px;
+        color: var(--text-muted);
+        margin-bottom: 20px;
+    }
+
+    @media (max-width: 768px) {
+        .container {
+            padding: 40px 15px;
+        }
+
+        .header-section h1 {
+            font-size: 36px;
+        }
+
+        .projects-section h2 {
+            font-size: 32px;
+        }
+
+        .projects-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .navbar-welcome {
+            font-size: 14px;
+        }
+
+        .navbar-welcome-name {
+            font-size: 16px;
+        }
+    }
+</style>
+
+<nav class="navbar">
+    <div class="container" style="display: flex; justify-content: space-between; align-items: center; padding: 0 20px; gap: 20px;">
+        <div class="navbar-brand">
+            <i class="fas fa-rocket"></i> CyberPM
         </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Active</h5>
-                    <p class="card-text display-4">{{ stats.active_projects }}</p>
-                </div>
-            </div>
+        
+        <div class="navbar-welcome">
+            <div class="navbar-welcome-label">Welcome</div>
+            <div class="navbar-welcome-name">{{ current_user.username }}</div>
         </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Tasks</h5>
-                    <p class="card-text display-4">{{ stats.total_tasks }}</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Completed</h5>
-                    <p class="card-text display-4">{{ stats.completed_tasks }}</p>
-                </div>
-            </div>
-        </div>
+        
+        <form method="GET" action="{{ url_for('logout') }}" style="display: inline;">
+            <button type="submit" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </button>
+        </form>
+    </div>
+</nav>
+
+<div class="container">
+    <!-- Header Section -->
+    <div class="header-section">
+        <h1>Dashboard</h1>
+        <p>Welcome back! Here's an overview of your projects and tasks.</p>
+        <a href="{{ url_for('create_project') }}" class="btn-primary">
+            <i class="fas fa-plus-circle"></i> New Project
+        </a>
     </div>
 
-    <a href="{{ url_for('create_project') }}" class="btn btn-primary mb-3">+ New Project</a>
-
-    <div class="row">
-        {% for project in projects %}
-        <div class="col-md-4 mb-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">{{ project.name }}</h5>
-                    <p class="card-text">{{ project.description[:100] }}...</p>
-                    <p><small class="text-muted">Status: {{ project.status }}</small></p>
-                    <a href="{{ url_for('project_detail', project_id=project.id) }}" class="btn btn-sm btn-primary">View</a>
-                    <a href="{{ url_for('edit_project', project_id=project.id) }}" class="btn btn-sm btn-warning">Edit</a>
+    <!-- Projects Section -->
+    <div class="projects-section">
+        <h2>Your Projects</h2>
+        
+        {% if projects %}
+        <div class="projects-grid">
+            {% for project in projects %}
+            <div class="project-card">
+                <div class="project-icon">
+                    <i class="fas fa-folder-open"></i>
                 </div>
+                <div class="project-name">{{ project.name }}</div>
+                <div class="project-desc">{{ project.description[:80] if project.description else 'No description' }}</div>
+                
+                <div class="project-stats">
+                    <div class="project-stat">
+                        <div class="project-stat-value">{{ project.tasks.count() }}</div>
+                        <div class="project-stat-label">Tasks</div>
+                    </div>
+                    <div class="project-stat">
+                        <div class="project-stat-value">{{ project.members|length }}</div>
+                        <div class="project-stat-label">Members</div>
+                    </div>
+                    <div class="project-stat">
+                        <div class="project-stat-value">
+                            {% set completed = project.tasks.filter_by(completed=True).count() %}
+                            {% set total = project.tasks.count() %}
+                            {% if total > 0 %}{{ ((completed / total) * 100)|int }}{% else %}0{% endif %}%
+                        </div>
+                        <div class="project-stat-label">Done</div>
+                    </div>
+                </div>
+
+                <a href="{{ url_for('project_detail', project_id=project.id) }}" class="project-link">
+                    View Project <i class="fas fa-arrow-right" style="margin-left: 5px;"></i>
+                </a>
             </div>
+            {% endfor %}
         </div>
-        {% endfor %}
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">
+                <i class="fas fa-inbox"></i>
+            </div>
+            <div class="empty-state-text">No projects yet. Create one to get started!</div>
+            <a href="{{ url_for('create_project') }}" class="btn-primary">
+                <i class="fas fa-plus-circle"></i> Create Your First Project
+            </a>
+        </div>
+        {% endif %}
     </div>
 </div>
+
 {% endblock %}
