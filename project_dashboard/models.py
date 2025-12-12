@@ -18,6 +18,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
     projects = db.relationship('Project', backref='owner', lazy='dynamic', cascade='all, delete-orphan')
     assigned_tasks = db.relationship('Task', backref='assigned_to', lazy='dynamic')
     
@@ -29,7 +30,6 @@ class User(UserMixin, db.Model):
     
     def __repr__(self):
         return f'<User {self.username}>'
-
 
 class Project(db.Model):
     __tablename__ = 'projects'
@@ -50,7 +50,6 @@ class Project(db.Model):
     def __repr__(self):
         return f'<Project {self.name}>'
 
-
 class Task(db.Model):
     __tablename__ = 'tasks'
     id = db.Column(db.Integer, primary_key=True)
@@ -62,9 +61,30 @@ class Task(db.Model):
     completed = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
     project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
     assigned_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     
+    # Relationship to subtasks
+    subtasks = db.relationship('Subtask', backref='task', lazy='dynamic', cascade='all, delete-orphan')
+    
+    def get_completion_percentage(self):
+        """Calculate task completion based on subtasks"""
+        total = self.subtasks.count()
+        if total == 0:
+            return 0
+        completed = self.subtasks.filter_by(completed=True).count()
+        return int((completed / total) * 100)
+    
     def __repr__(self):
         return f'<Task {self.title}>'
+
+class Subtask(db.Model):
+    __tablename__ = 'subtasks'
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    completed = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    task_id = db.Column(db.Integer, db.ForeignKey('tasks.id'), nullable=False)
+    
+    def __repr__(self):
+        return f'<Subtask {self.title}>'

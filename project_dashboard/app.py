@@ -1,6 +1,6 @@
 from flask import Flask, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
-from models import db, User, Project, Task
+from models import db, User, Project, Task, Subtask
 from forms import LoginForm, SignupForm, ProjectForm, TaskForm, AddMemberForm
 import os
 
@@ -152,9 +152,20 @@ def create_task(project_id):
             db.session.add(task)
             db.session.commit()
             flash('Task created!', 'success')
-            return redirect(url_for('project_detail', project_id=project.id))
+            return redirect(url_for('task_detail', task_id=task.id))
     
     return render_template('task_form.html', form=form, project=project, title='Create Task')
+
+@app.route('/task/<int:task_id>')
+@login_required
+def task_detail(task_id):
+    task = Task.query.get_or_404(task_id)
+    if task.project.user_id != current_user.id:
+        flash('Access denied.', 'danger')
+        return redirect(url_for('dashboard'))
+    subtasks = task.subtasks.all()
+    completion = task.get_completion_percentage()
+    return render_template('task_detail.html', task=task, subtasks=subtasks, completion=completion)
 
 @app.route('/task/<int:task_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -177,20 +188,24 @@ def edit_task(task_id):
         task.completed = (form.status.data == 'done')
         db.session.commit()
         flash('Task updated!', 'success')
-        return redirect(url_for('project_detail', project_id=task.project_id))
+        return redirect(url_for('task_detail', task_id=task.id))
     return render_template('task_form.html', form=form, project=task.project, title='Edit Task', task=task)
 
-@app.route('/task/<int:task_id>/toggle', methods=['POST'])
+@app.route('/task/<int:task_id>/status/<new_status>', methods=['POST'])
 @login_required
-def toggle_task(task_id):
+def change_task_status(task_id, new_status):
     task = Task.query.get_or_404(task_id)
     if task.project.user_id != current_user.id:
-        flash('Access denied.', 'danger')
-        return redirect(url_for('dashboard'))
-    task.completed = not task.completed
-    task.status = 'done' if task.completed else 'todo'
+        return jsonify({'error': 'Access denied'}), 403
+    
+    if new_status not in ['todo', 'in_progress', 'done']:
+        return jsonify({'error': 'Invalid status'}), 400
+    
+    task.status = new_status
+    task.completed = (new_status == 'done')
     db.session.commit()
-    return redirect(url_for('project_detail', project_id=task.project_id))
+    
+    return jsonify({'success': True, 'status': new_status})
 
 @app.route('/task/<int:task_id>/delete', methods=['POST'])
 @login_required
@@ -204,6 +219,47 @@ def delete_task(task_id):
     db.session.commit()
     flash('Task deleted.', 'success')
     return redirect(url_for('project_detail', project_id=project_id))
+
+@app.route('/task/<int:task_id>/subtask/new', methods=['POST'])
+@login_required
+def add_subtask(task_id):
+    task = Task.query.get_or_404(task_id)
+    if task.project.user_id != current_user.id:
+        return jsonify({'error': 'Access denied'}), 403
+    
+    title = request.form.get('title', '').strip()
+    if not title:
+        return jsonify({'error': 'Title required'}), 400
+    
+    subtask = Subtask(title=title, task_id=task_id)
+    db.session.add(subtask)
+    db.session.commit()
+    
+    return jsonify({'success': True, 'id': subtask.id, 'title': subtask.title})
+
+@app.route('/subtask/<int:subtask_id>/toggle', methods=['POST'])
+@login_required
+def toggle_subtask(subtask_id):
+    subtask = Subtask.query.get_or_404(subtask_id)
+    if subtask.task.project.user_id != current_user.id:
+        return jsonify({'error': 'Access denied'}), 403
+    
+    subtask.completed = not subtask.completed
+    db.session.commit()
+    
+    return jsonify({'success': True, 'completed': subtask.completed})
+
+@app.route('/subtask/<int:subtask_id>/delete', methods=['POST'])
+@login_required
+def delete_subtask(subtask_id):
+    subtask = Subtask.query.get_or_404(subtask_id)
+    if subtask.task.project.user_id != current_user.id:
+        return jsonify({'error': 'Access denied'}), 403
+    
+    db.session.delete(subtask)
+    db.session.commit()
+    
+    return jsonify({'success': True})
 
 @app.route('/search-users')
 @login_required
