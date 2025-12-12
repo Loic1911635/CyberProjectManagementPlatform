@@ -1,40 +1,72 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-5">
-    <h1>{{ title }}</h1>
+<div style="max-width: 600px; margin: 40px auto; padding: 20px;">
+    <h2>{{ title }}</h2>
+    
+    {% if form.errors %}
+    <div style="background: #fee; color: #c33; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <strong>Form Errors:</strong>
+        <ul>
+        {% for field, errors in form.errors.items() %}
+            {% for error in errors %}
+            <li><strong>{{ field }}:</strong> {{ error }}</li>
+            {% endfor %}
+        {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
 
-    <form method="POST">
+    <form method="POST" style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
         {{ form.hidden_tag() }}
-
-        <div class="mb-3">
-            {{ form.name.label }}
-            {{ form.name(class="form-control") }}
+        
+        <div style="margin-bottom: 15px;">
+            {{ form.name.label(style="display: block; margin-bottom: 5px; font-weight: bold;") }}
+            {{ form.name(style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;") }}
+            {% if form.name.errors %}
+                <div style="color: #c33; font-size: 12px; margin-top: 5px;">{{ form.name.errors[0] }}</div>
+            {% endif %}
         </div>
 
-        <div class="mb-3">
-            {{ form.description.label }}
-            {{ form.description(class="form-control", rows="4") }}
+        <div style="margin-bottom: 15px;">
+            {{ form.description.label(style="display: block; margin-bottom: 5px; font-weight: bold;") }}
+            {{ form.description(rows=4, style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; font-family: Arial;") }}
+            {% if form.description.errors %}
+                <div style="color: #c33; font-size: 12px; margin-top: 5px;">{{ form.description.errors[0] }}</div>
+            {% endif %}
         </div>
 
-        <div class="mb-3">
-            {{ form.start_date.label }}
-            {{ form.start_date(class="form-control") }}
+        <div style="margin-bottom: 15px;">
+            {{ form.start_date.label(style="display: block; margin-bottom: 5px; font-weight: bold;") }}
+            {{ form.start_date(style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;") }}
+            {% if form.start_date.errors %}
+                <div style="color: #c33; font-size: 12px; margin-top: 5px;">{{ form.start_date.errors[0] }}</div>
+            {% endif %}
         </div>
 
-        <div class="mb-3">
-            {{ form.end_date.label }}
-            {{ form.end_date(class="form-control") }}
+        <div style="margin-bottom: 15px;">
+            {{ form.end_date.label(style="display: block; margin-bottom: 5px; font-weight: bold;") }}
+            {{ form.end_date(style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;") }}
+            {% if form.end_date.errors %}
+                <div style="color: #c33; font-size: 12px; margin-top: 5px;">{{ form.end_date.errors[0] }}</div>
+            {% endif %}
         </div>
 
-        <div class="mb-3">
-            {{ form.status.label }}
-            {{ form.status(class="form-control") }}
+        <div style="margin-bottom: 20px;">
+            {{ form.status.label(style="display: block; margin-bottom: 5px; font-weight: bold;") }}
+            {{ form.status(style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;") }}
+            {% if form.status.errors %}
+                <div style="color: #c33; font-size: 12px; margin-top: 5px;">{{ form.status.errors[0] }}</div>
+            {% endif %}
         </div>
 
-        <div class="mb-3">
-            <button type="submit" class="btn btn-primary">Save</button>
-            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancel</a>
+        <div style="display: flex; gap: 10px;">
+            <button type="submit" style="flex: 1; padding: 12px; background: #667eea; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px;">
+                Save Project
+            </button>
+            <a href="{{ url_for('dashboard') }}" style="flex: 1; padding: 12px; background: #eee; color: #333; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px; text-decoration: none; text-align: center;">
+                Cancel
+            </a>
         </div>
     </form>
 </div>

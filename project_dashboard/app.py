@@ -10,6 +10,7 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cyberpm.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
+
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
@@ -131,12 +132,10 @@ def create_task(project_id):
     if project.user_id != current_user.id:
         flash('Access denied.', 'danger')
         return redirect(url_for('dashboard'))
-    
     form = TaskForm()
     choices = [(0, 'Unassigned')] + [(u.id, u.username) for u in [project.owner] + list(project.members)]
     form.assigned_to.choices = choices
     form.assigned_to.validators = []
-    
     if request.method == 'POST':
         if form.validate():
             assigned_id = form.assigned_to.data if form.assigned_to.data != 0 else None
@@ -153,7 +152,6 @@ def create_task(project_id):
             db.session.commit()
             flash('Task created!', 'success')
             return redirect(url_for('task_detail', task_id=task.id))
-    
     return render_template('task_form.html', form=form, project=project, title='Create Task')
 
 @app.route('/task/<int:task_id>')
@@ -163,9 +161,9 @@ def task_detail(task_id):
     if task.project.user_id != current_user.id:
         flash('Access denied.', 'danger')
         return redirect(url_for('dashboard'))
-    subtasks = task.subtasks.all()
+    subtasks_list = task.subtasks.all()
     completion = task.get_completion_percentage()
-    return render_template('task_detail.html', task=task, subtasks=subtasks, completion=completion)
+    return render_template('task_detail.html', task=task, subtasks_list=subtasks_list, completion=completion)
 
 @app.route('/task/<int:task_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -197,14 +195,11 @@ def change_task_status(task_id, new_status):
     task = Task.query.get_or_404(task_id)
     if task.project.user_id != current_user.id:
         return jsonify({'error': 'Access denied'}), 403
-    
     if new_status not in ['todo', 'in_progress', 'done']:
         return jsonify({'error': 'Invalid status'}), 400
-    
     task.status = new_status
     task.completed = (new_status == 'done')
     db.session.commit()
-    
     return jsonify({'success': True, 'status': new_status})
 
 @app.route('/task/<int:task_id>/delete', methods=['POST'])
@@ -220,46 +215,50 @@ def delete_task(task_id):
     flash('Task deleted.', 'success')
     return redirect(url_for('project_detail', project_id=project_id))
 
-@app.route('/task/<int:task_id>/subtask/new', methods=['POST'])
+@app.route('/task/<int:task_id>/subtask/add', methods=['POST'])
 @login_required
 def add_subtask(task_id):
     task = Task.query.get_or_404(task_id)
     if task.project.user_id != current_user.id:
-        return jsonify({'error': 'Access denied'}), 403
-    
+        flash('Access denied.', 'danger')
+        return redirect(url_for('dashboard'))
     title = request.form.get('title', '').strip()
-    if not title:
-        return jsonify({'error': 'Title required'}), 400
-    
-    subtask = Subtask(title=title, task_id=task_id)
-    db.session.add(subtask)
-    db.session.commit()
-    
-    return jsonify({'success': True, 'id': subtask.id, 'title': subtask.title})
+    if title:
+        subtask = Subtask(title=title, task_id=task_id)
+        db.session.add(subtask)
+        db.session.commit()
+        flash('Subtask added!', 'success')
+    else:
+        flash('Subtask title cannot be empty.', 'warning')
+    return redirect(url_for('task_detail', task_id=task_id))
 
 @app.route('/subtask/<int:subtask_id>/toggle', methods=['POST'])
 @login_required
 def toggle_subtask(subtask_id):
     subtask = Subtask.query.get_or_404(subtask_id)
-    if subtask.task.project.user_id != current_user.id:
-        return jsonify({'error': 'Access denied'}), 403
-    
+    task = subtask.task
+    if task.project.user_id != current_user.id:
+        flash('Access denied.', 'danger')
+        return redirect(url_for('dashboard'))
     subtask.completed = not subtask.completed
     db.session.commit()
-    
-    return jsonify({'success': True, 'completed': subtask.completed})
+    status_text = "completed" if subtask.completed else "incomplete"
+    flash(f'Subtask marked as {status_text}!', 'success')
+    return redirect(url_for('task_detail', task_id=task.id))
 
 @app.route('/subtask/<int:subtask_id>/delete', methods=['POST'])
 @login_required
 def delete_subtask(subtask_id):
     subtask = Subtask.query.get_or_404(subtask_id)
-    if subtask.task.project.user_id != current_user.id:
-        return jsonify({'error': 'Access denied'}), 403
-    
+    task = subtask.task
+    if task.project.user_id != current_user.id:
+        flash('Access denied.', 'danger')
+        return redirect(url_for('dashboard'))
+    task_id = task.id
     db.session.delete(subtask)
     db.session.commit()
-    
-    return jsonify({'success': True})
+    flash('Subtask deleted!', 'success')
+    return redirect(url_for('task_detail', task_id=task_id))
 
 @app.route('/search-users')
 @login_required
@@ -267,7 +266,6 @@ def search_users():
     query = request.args.get('q', '').strip()
     if len(query) < 1:
         return jsonify([])
-    
     users = User.query.filter(User.username.ilike(f'%{query}%')).limit(10).all()
     return jsonify([{'id': u.id, 'username': u.username, 'email': u.email} for u in users])
 
@@ -278,25 +276,20 @@ def add_member(project_id):
     if project.user_id != current_user.id:
         flash('Access denied.', 'danger')
         return redirect(url_for('dashboard'))
-    
     user_id = request.form.get('user_id')
     if not user_id:
         flash('Please select a user.', 'danger')
         return redirect(url_for('project_detail', project_id=project.id))
-    
     user = User.query.get_or_404(user_id)
-    
     if user.id == current_user.id:
         flash('You are already the project owner.', 'info')
         return redirect(url_for('project_detail', project_id=project.id))
-    
     if user in project.members:
         flash(f'{user.username} is already a member.', 'info')
     else:
         project.members.append(user)
         db.session.commit()
         flash(f'✅ {user.username} added to project!', 'success')
-    
     return redirect(url_for('project_detail', project_id=project.id))
 
 @app.route('/project/<int:project_id>/remove-member/<int:user_id>', methods=['POST'])

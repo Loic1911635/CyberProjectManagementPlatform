@@ -1,254 +1,507 @@
 {% extends "base.html" %}
 
 {% block content %}
+
+<style>
+    :root {
+        --primary: #667eea;
+        --primary-dark: #764ba2;
+        --success: #48bb78;
+        --warning: #ed8936;
+        --danger: #f56565;
+        --text-dark: #1a202c;
+        --text-muted: #718096;
+        --card-shadow: 0 10px 35px rgba(102, 126, 234, 0.15);
+    }
+
+    body {
+        background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 40px 20px;
+    }
+
+    .card {
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: var(--card-shadow);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        animation: fadeInUp 0.6s ease-out both;
+        margin-bottom: 30px;
+    }
+
+    .card:nth-child(1) { animation-delay: 0.1s; }
+    .card:nth-child(2) { animation-delay: 0.2s; }
+    .card:nth-child(3) { animation-delay: 0.3s; }
+
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .card-header {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-dark);
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid rgba(102, 126, 234, 0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 30px;
+        gap: 20px;
+    }
+
+    .page-header h1 {
+        font-size: 36px;
+        color: var(--text-dark);
+        margin: 0;
+        font-weight: 700;
+        flex: 1;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        padding: 12px 24px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 14px;
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        text-decoration: none;
+    }
+
+    .btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+        background: white;
+        color: var(--text-dark);
+        border: 2px solid rgba(102, 126, 234, 0.2);
+        box-shadow: none;
+    }
+
+    .btn-secondary:hover {
+        border-color: var(--primary);
+        color: var(--primary);
+    }
+
+    .btn-sm {
+        padding: 8px 16px;
+        font-size: 12px;
+        border-radius: 6px;
+    }
+
+    .btn-danger {
+        background: linear-gradient(135deg, var(--danger) 0%, #e53e3e 100%);
+        box-shadow: 0 8px 20px rgba(245, 101, 101, 0.3);
+    }
+
+    .btn-danger:hover {
+        transform: translateY(-2px);
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .badge-active {
+        background: rgba(72, 187, 120, 0.15);
+        color: var(--success);
+        border: 1px solid rgba(72, 187, 120, 0.3);
+    }
+
+    .form-group {
+        position: relative;
+        margin-bottom: 20px;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--text-dark);
+        font-size: 14px;
+    }
+
+    .search-input-wrapper {
+        display: flex;
+        gap: 10px;
+    }
+
+    input[type="text"],
+    input[type="hidden"] {
+        flex: 1;
+        padding: 10px 14px;
+        border: 2px solid rgba(102, 126, 234, 0.2);
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+    input[type="text"]:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .autocomplete-results {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 2px solid rgba(102, 126, 234, 0.2);
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        max-height: 300px;
+        overflow-y: auto;
+        display: none;
+        z-index: 1000;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .autocomplete-results.active {
+        display: block;
+    }
+
+    .autocomplete-item {
+        padding: 10px 14px;
+        cursor: pointer;
+        transition: background 0.2s ease;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .autocomplete-item:hover {
+        background: rgba(102, 126, 234, 0.05);
+    }
+
+    .autocomplete-item strong {
+        color: var(--text-dark);
+    }
+
+    .autocomplete-item small {
+        display: block;
+        color: var(--text-muted);
+        font-size: 12px;
+    }
+
+    .member-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    .member-item {
+        background: rgba(102, 126, 234, 0.1);
+        border: 1px solid rgba(102, 126, 234, 0.3);
+        padding: 8px 12px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+    }
+
+    .member-item form {
+        display: inline;
+    }
+
+    .member-remove-btn {
+        background: none;
+        border: none;
+        color: var(--danger);
+        cursor: pointer;
+        font-weight: bold;
+        padding: 0;
+        transition: transform 0.2s ease;
+    }
+
+    .member-remove-btn:hover {
+        transform: scale(1.2);
+    }
+
+    .task-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+
+    .task-table th {
+        background: rgba(102, 126, 234, 0.05);
+        padding: 12px;
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-dark);
+        border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .task-table td {
+        padding: 12px;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .task-table tr:hover {
+        background: rgba(102, 126, 234, 0.02);
+    }
+
+    .task-table a {
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.3s ease;
+    }
+
+    .task-table a:hover {
+        color: var(--primary-dark);
+    }
+
+    @media (max-width: 768px) {
+        .page-header {
+            flex-direction: column;
+        }
+
+        .page-header h1 {
+            font-size: 28px;
+        }
+
+        .header-actions {
+            width: 100%;
+            flex-direction: column;
+        }
+
+        .header-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .search-input-wrapper {
+            flex-direction: column;
+        }
+    }
+</style>
+
 <div class="container">
-    <div class="row align-items-start mb-4">
-        <div class="col-md-8">
-            <h1><i class="fas fa-folder-open"></i> {{ project.name }}</h1>
-            <p style="color: #4a5568; font-size: 1.05rem;">{{ project.description }}</p>
+    <!-- Header -->
+    <div class="page-header">
+        <div>
+            <h1>{{ project.name }}</h1>
+            {% if project.description %}
+            <p style="color: var(--text-muted); margin-top: 10px;">{{ project.description }}</p>
+            {% endif %}
         </div>
-        <div class="col-md-4 text-end">
-            <a href="{{ url_for('create_task', project_id=project.id) }}" class="btn btn-primary btn-lg"><i class="fas fa-plus-circle"></i> New Task</a>
-        </div>
-    </div>
-
-    <!-- Add Member Section -->
-    <div class="card mb-5">
-        <div class="card-header">
-            <i class="fas fa-user-plus"></i> Add Team Member
-        </div>
-        <div class="card-body">
-            <form method="POST" action="{{ url_for('add_member', project_id=project.id) }}">
-                <div class="row g-2 align-items-end">
-                    <div class="col-md-8">
-                        <label class="form-label"><i class="fas fa-search"></i> Search Users</label>
-                        <input type="text" id="username-search" class="form-control form-control-lg" placeholder="Type a username..." autocomplete="off">
-                        <div id="search-results" class="list-group mt-2" style="display:none; position: absolute; width: 450px; z-index: 1000;"></div>
-                    </div>
-                    <div class="col-md-4">
-                        <button type="submit" id="add-btn" class="btn btn-success btn-lg w-100" disabled>
-                            <i class="fas fa-check"></i> Add Member
-                        </button>
-                    </div>
-                </div>
-                <input type="hidden" id="selected-user-id" name="user_id" value="">
+        <div class="header-actions">
+            <a href="{{ url_for('create_task', project_id=project.id) }}" class="btn">
+                <i class="fas fa-plus"></i> New Task
+            </a>
+            <a href="{{ url_for('edit_project', project_id=project.id) }}" class="btn btn-secondary">
+                <i class="fas fa-edit"></i> Edit
+            </a>
+            <form method="POST" action="{{ url_for('delete_project', project_id=project.id) }}" style="display: inline;" onsubmit="return confirm('Delete this project? This cannot be undone.');">
+                <button type="submit" class="btn btn-danger btn-sm" style="padding: 8px 16px;">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
             </form>
-            <small style="color: #718096; margin-top: 1rem; display: block;"><i class="fas fa-info-circle"></i> Type to search for registered users</small>
         </div>
     </div>
 
-    <!-- Current Team Members -->
-    <div class="card mb-5">
+    <!-- Members Section -->
+    <div class="card">
         <div class="card-header">
-            <i class="fas fa-users"></i> Team Members ({{ project.members|length + 1 }})
+            <span><i class="fas fa-users"></i> Team Members</span>
+            <span style="font-size: 12px; color: var(--text-muted); font-weight: normal;">{{ project.members|length + 1 }} members</span>
         </div>
-        <div class="card-body">
-            <div class="row">
-                <!-- Project Owner -->
-                <div class="col-md-4 mb-3">
-                    <div class="card" style="border: 2px solid #667eea;">
-                        <div class="card-body text-center">
-                            <i class="fas fa-crown" style="color: #667eea; font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
-                            <h6 class="mb-1"><strong>{{ project.owner.username }}</strong></h6>
-                            <small style="color: #718096;">Project Owner</small>
-                            <div style="margin-top: 0.75rem; color: #667eea; font-size: 0.85rem;">
-                                <i class="fas fa-star"></i> Owner
-                            </div>
-                        </div>
-                    </div>
+
+        <!-- Add Member Form -->
+        <div class="form-group">
+            <label for="member-search">Add Team Member</label>
+            <div class="search-input-wrapper" style="position: relative;">
+                <input type="text" id="member-search" placeholder="Search for a user by username..." autocomplete="off">
+                <div class="autocomplete-results" id="autocomplete-results"></div>
+            </div>
+        </div>
+
+        <!-- Current Members -->
+        <div style="margin-top: 20px;">
+            <div style="font-weight: 600; margin-bottom: 10px; color: var(--text-dark);">Current Team:</div>
+            <div class="member-list">
+                <!-- Owner -->
+                <div class="member-item" style="background: rgba(72, 187, 120, 0.1); border-color: rgba(72, 187, 120, 0.3);">
+                    <i class="fas fa-crown" style="color: var(--success);"></i>
+                    <span><strong>{{ project.owner.username }}</strong> (Owner)</span>
                 </div>
 
-                <!-- Team Members -->
+                <!-- Members -->
                 {% for member in project.members %}
-                <div class="col-md-4 mb-3">
-                    <div class="card">
-                        <div class="card-body text-center">
-                            <i class="fas fa-user-circle" style="color: #667eea; font-size: 2rem; margin-bottom: 0.5rem; display: block;"></i>
-                            <h6 class="mb-1"><strong>{{ member.username }}</strong></h6>
-                            <small style="color: #718096;">{{ member.email }}</small>
-                            <div style="margin-top: 0.75rem;">
-                                <form method="POST" action="{{ url_for('remove_member', project_id=project.id, user_id=member.id) }}" style="display: inline;" onclick="return confirm('Remove {{ member.username }} from project?')">
-                                    <button type="submit" class="btn btn-sm btn-danger">
-                                        <i class="fas fa-trash"></i> Remove
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
+                <div class="member-item">
+                    <span>{{ member.username }}</span>
+                    <form method="POST" action="{{ url_for('remove_member', project_id=project.id, user_id=member.id) }}" style="display: inline;" onsubmit="return confirm('Remove {{ member.username }} from project?');">
+                        <button type="submit" class="member-remove-btn" title="Remove member">
+                            ✕
+                        </button>
+                    </form>
                 </div>
                 {% endfor %}
             </div>
         </div>
     </div>
 
-    <div class="row mb-5">
-        <div class="col-md-3">
-            <div class="stat-card">
-                <h5><i class="fas fa-circle-notch"></i> To Do</h5>
-                <div class="display-4">{{ task_stats.todo }}</div>
-            </div>
+    <!-- Tasks Section -->
+    <div class="card">
+        <div class="card-header">
+            <span><i class="fas fa-tasks"></i> Tasks</span>
+            <span style="font-size: 12px; color: var(--text-muted); font-weight: normal;">
+                📊 To Do: {{ task_stats.todo }} | In Progress: {{ task_stats.in_progress }} | Done: {{ task_stats.done }}
+            </span>
         </div>
-        <div class="col-md-3">
-            <div class="stat-card">
-                <h5><i class="fas fa-spinner"></i> In Progress</h5>
-                <div class="display-4">{{ task_stats.in_progress }}</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card">
-                <h5><i class="fas fa-check-circle"></i> Done</h5>
-                <div class="display-4">{{ task_stats.done }}</div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="stat-card">
-                <h5><i class="fas fa-chart-pie"></i> Total</h5>
-                <div class="display-4">{{ task_stats.total }}</div>
-            </div>
-        </div>
-    </div>
 
-    <h3><i class="fas fa-list-check"></i> Project Tasks</h3>
-    {% if tasks %}
-    <div class="table-responsive">
-        <table class="table">
+        {% if tasks %}
+        <table class="task-table">
             <thead>
                 <tr>
-                    <th><i class="fas fa-heading"></i> Title</th>
-                    <th><i class="fas fa-flag"></i> Status</th>
-                    <th><i class="fas fa-exclamation"></i> Priority</th>
-                    <th><i class="fas fa-user"></i> Assigned</th>
-                    <th><i class="fas fa-cog"></i> Actions</th>
+                    <th>Title</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Assigned</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for task in tasks %}
                 <tr>
-                    <td><strong style="color: #1a202c;">{{ task.title }}</strong></td>
+                    <td>
+                        <a href="{{ url_for('task_detail', task_id=task.id) }}">{{ task.title }}</a>
+                    </td>
                     <td>
                         {% if task.status == 'todo' %}
-                            <span class="badge" style="background: #cbd5e0; color: #1a202c;"><i class="fas fa-circle-notch"></i> To Do</span>
+                        <span class="badge" style="background: rgba(237, 137, 54, 0.15); color: var(--warning); border: 1px solid rgba(237, 137, 54, 0.3);">To Do</span>
                         {% elif task.status == 'in_progress' %}
-                            <span class="badge" style="background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%); color: white;"><i class="fas fa-spinner"></i> In Progress</span>
+                        <span class="badge" style="background: rgba(102, 126, 234, 0.15); color: var(--primary); border: 1px solid rgba(102, 126, 234, 0.3);">In Progress</span>
                         {% else %}
-                            <span class="badge" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white;"><i class="fas fa-check-circle"></i> Done</span>
+                        <span class="badge badge-active">Done</span>
                         {% endif %}
                     </td>
                     <td>
-                        {% if task.priority == 'low' %}
-                            <span class="badge" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white;"><i class="fas fa-arrow-down"></i> Low</span>
+                        {% if task.priority == 'high' %}
+                        <span class="badge" style="background: rgba(245, 101, 101, 0.15); color: var(--danger); border: 1px solid rgba(245, 101, 101, 0.3);">High</span>
                         {% elif task.priority == 'medium' %}
-                            <span class="badge" style="background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%); color: white;"><i class="fas fa-equals"></i> Medium</span>
+                        <span class="badge" style="background: rgba(237, 137, 54, 0.15); color: var(--warning); border: 1px solid rgba(237, 137, 54, 0.3);">Medium</span>
                         {% else %}
-                            <span class="badge" style="background: linear-gradient(135deg, #f56565 0%, #e53e3e 100%); color: white;"><i class="fas fa-arrow-up"></i> High</span>
+                        <span class="badge badge-active">Low</span>
                         {% endif %}
                     </td>
-                    <td style="color: #4a5568;">{{ task.assigned_to.username if task.assigned_to else '<em>Unassigned</em>' }}</td>
+                    <td>{{ task.assigned_to.username if task.assigned_to else 'Unassigned' }}</td>
                     <td>
-                        <div style="display: flex; gap: 0.5rem;">
-                            <a href="{{ url_for('task_detail', task_id=task.id) }}" class="btn btn-sm btn-info" title="View Details">
-                                <i class="fas fa-eye"></i> View
-                            </a>
-                            <a href="{{ url_for('edit_task', task_id=task.id) }}" class="btn btn-sm btn-warning">
-                                <i class="fas fa-edit"></i> Edit
-                            </a>
-                            <form method="POST" action="{{ url_for('delete_task', task_id=task.id) }}" style="display:inline;" onclick="return confirm('Delete this task?')">
-                                <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i> Delete</button>
-                            </form>
-                        </div>
+                        <a href="{{ url_for('task_detail', task_id=task.id) }}" class="btn btn-sm">View</a>
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+        {% else %}
+        <p style="color: var(--text-muted); text-align: center; padding: 20px;">
+            <i class="fas fa-inbox"></i> No tasks yet. <a href="{{ url_for('create_task', project_id=project.id) }}" style="color: var(--primary); text-decoration: none; font-weight: 600;">Create one</a>!
+        </p>
+        {% endif %}
     </div>
-    {% else %}
-    <div class="alert alert-info">
-        <i class="fas fa-info-circle"></i> No tasks yet. <a href="{{ url_for('create_task', project_id=project.id) }}" style="font-weight: 600;">Create one now!</a>
-    </div>
-    {% endif %}
 </div>
 
+<!-- Hidden form for member addition -->
+<form method="POST" id="add-member-form" action="{{ url_for('add_member', project_id=project.id) }}" style="display: none;">
+    <input type="hidden" name="user_id" id="selected-user-id" value="">
+</form>
+
 <script>
-let selectedUser = null;
+    const searchInput = document.getElementById('member-search');
+    const autocompleteResults = document.getElementById('autocomplete-results');
+    const addMemberForm = document.getElementById('add-member-form');
+    const selectedUserIdInput = document.getElementById('selected-user-id');
 
-document.getElementById('username-search').addEventListener('input', async function(e) {
-    const query = e.target.value.trim();
-    const resultsDiv = document.getElementById('search-results');
-    
-    if (query.length < 1) {
-        resultsDiv.style.display = 'none';
-        return;
-    }
-    
-    try {
-        const response = await fetch(`/search-users?q=${encodeURIComponent(query)}`);
-        const users = await response.json();
-        
-        resultsDiv.innerHTML = '';
-        
-        if (users.length === 0) {
-            resultsDiv.innerHTML = '<div class="list-group-item disabled">❌ No users found</div>';
-        } else {
-            users.forEach(user => {
-                const item = document.createElement('button');
-                item.type = 'button';
-                item.className = 'list-group-item list-group-item-action';
-                item.innerHTML = `<strong>${user.username}</strong> <small style="color: #718096;">${user.email}</small>`;
-                item.onclick = function() {
-                    selectedUser = user;
-                    document.getElementById('username-search').value = user.username;
-                    document.getElementById('selected-user-id').value = user.id;
-                    document.getElementById('add-btn').disabled = false;
-                    resultsDiv.style.display = 'none';
-                };
-                resultsDiv.appendChild(item);
-            });
+    let debounceTimer;
+
+    searchInput.addEventListener('input', function() {
+        clearTimeout(debounceTimer);
+        const query = this.value.trim();
+
+        if (query.length < 1) {
+            autocompleteResults.classList.remove('active');
+            return;
         }
-        
-        resultsDiv.style.display = 'block';
-    } catch (error) {
-        console.error('Search error:', error);
-    }
-});
 
-// Hide results when clicking outside
-document.addEventListener('click', function(e) {
-    if (e.target.id !== 'username-search') {
-        document.getElementById('search-results').style.display = 'none';
+        debounceTimer = setTimeout(() => {
+            fetch(`/search-users?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(users => {
+                    if (users.length === 0) {
+                        autocompleteResults.innerHTML = '<div class="autocomplete-item" style="cursor: default;">No users found</div>';
+                    } else {
+                        autocompleteResults.innerHTML = users.map(user => `
+                            <div class="autocomplete-item" onclick="selectUser(${user.id}, '${user.username}')">
+                                <strong>${user.username}</strong>
+                                <small>${user.email}</small>
+                            </div>
+                        `).join('');
+                    }
+                    autocompleteResults.classList.add('active');
+                })
+                .catch(error => console.error('Error:', error));
+        }, 300);
+    });
+
+    function selectUser(userId, username) {
+        selectedUserIdInput.value = userId;
+        searchInput.value = username;
+        autocompleteResults.classList.remove('active');
+        addMemberForm.submit();
     }
-});
+
+    // Close autocomplete when clicking outside
+    document.addEventListener('click', function(event) {
+        if (event.target !== searchInput && event.target !== autocompleteResults) {
+            autocompleteResults.classList.remove('active');
+        }
+    });
 </script>
 
-<style>
-.list-group {
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.list-group-item {
-    border: none;
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid #e2e8f0;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.list-group-item:last-child {
-    border-bottom: none;
-}
-
-.list-group-item:hover {
-    background: #f7fafc;
-    transform: translateX(4px);
-}
-
-.list-group-item.disabled {
-    background: #f0f0f0;
-    color: #999;
-    cursor: not-allowed;
-}
-</style>
 {% endblock %}

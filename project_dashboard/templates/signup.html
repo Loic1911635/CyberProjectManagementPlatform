@@ -1,32 +1,237 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-4">
-            <h1>Sign Up</h1>
-            <form method="POST">
-                {{ form.hidden_tag() }}
-                <div class="mb-3">
-                    {{ form.username.label }}
-                    {{ form.username(class="form-control") }}
+
+<style>
+    :root {
+        --primary: #667eea;
+        --primary-dark: #764ba2;
+        --danger: #f56565;
+        --success: #48bb78;
+        --text-dark: #1a202c;
+        --text-muted: #718096;
+    }
+
+    body {
+        background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .container {
+        max-width: 500px;
+        margin: auto;
+        padding: 20px;
+    }
+
+    .card {
+        background: white;
+        border-radius: 15px;
+        padding: 40px;
+        box-shadow: 0 10px 40px rgba(102, 126, 234, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+    }
+
+    h1 {
+        color: var(--text-dark);
+        font-size: 32px;
+        font-weight: 700;
+        margin: 0 0 10px 0;
+        text-align: center;
+    }
+
+    .subtitle {
+        color: var(--text-muted);
+        text-align: center;
+        font-size: 14px;
+        margin-bottom: 30px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--text-dark);
+        font-size: 14px;
+    }
+
+    input {
+        width: 100%;
+        padding: 12px 14px;
+        border: 2px solid rgba(102, 126, 234, 0.2);
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        box-sizing: border-box;
+    }
+
+    input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .error-message {
+        color: var(--danger);
+        font-size: 12px;
+        margin-top: 6px;
+        display: block;
+    }
+
+    .error-box {
+        background: rgba(245, 101, 101, 0.1);
+        border: 1px solid rgba(245, 101, 101, 0.3);
+        color: var(--danger);
+        padding: 12px 14px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .error-box ul {
+        margin: 0;
+        padding-left: 20px;
+    }
+
+    .error-box li {
+        margin-bottom: 4px;
+    }
+
+    .btn {
+        width: 100%;
+        padding: 12px 24px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 600;
+        font-size: 15px;
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn:active {
+        transform: translateY(0);
+    }
+
+    .footer-text {
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 14px;
+        margin-top: 20px;
+    }
+
+    .footer-text a {
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.3s ease;
+    }
+
+    .footer-text a:hover {
+        color: var(--primary-dark);
+    }
+
+    .password-hint {
+        font-size: 12px;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+</style>
+
+<div class="container">
+    <div class="card">
+        <h1>Sign Up</h1>
+        <p class="subtitle">Create your CyberPM account</p>
+
+        {% if form.errors %}
+        <div class="error-box">
+            <strong>⚠️ Please fix the following errors:</strong>
+            {% for field, errors in form.errors.items() %}
+                <div style="margin-top: 8px;">
+                    <strong>{{ field.replace('_', ' ').title() }}:</strong>
+                    <ul style="margin: 4px 0 0 0;">
+                        {% for error in errors %}
+                        <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
                 </div>
-                <div class="mb-3">
-                    {{ form.email.label }}
-                    {{ form.email(class="form-control") }}
-                </div>
-                <div class="mb-3">
-                    {{ form.password.label }}
-                    {{ form.password(class="form-control") }}
-                </div>
-                <div class="mb-3">
-                    {{ form.password_confirm.label }}
-                    {{ form.password_confirm(class="form-control") }}
-                </div>
-                <button type="submit" class="btn btn-primary">Sign Up</button>
-            </form>
-            <p>Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
+            {% endfor %}
         </div>
+        {% endif %}
+
+        <form method="POST" novalidate>
+            {{ form.hidden_tag() }}
+
+            <!-- Username Field -->
+            <div class="form-group">
+                <label for="username">Username</label>
+                {{ form.username(id="username", placeholder="Choose a username", class="form-control") }}
+                {% if form.username.errors %}
+                    {% for error in form.username.errors %}
+                    <span class="error-message">✗ {{ error }}</span>
+                    {% endfor %}
+                {% endif %}
+                <div class="password-hint">3-80 characters, letters, numbers, underscores</div>
+            </div>
+
+            <!-- Email Field -->
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                {{ form.email(id="email", type="email", placeholder="your@email.com", class="form-control") }}
+                {% if form.email.errors %}
+                    {% for error in form.email.errors %}
+                    <span class="error-message">✗ {{ error }}</span>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Password Field -->
+            <div class="form-group">
+                <label for="password">Password</label>
+                {{ form.password(id="password", placeholder="Create a strong password", class="form-control") }}
+                {% if form.password.errors %}
+                    {% for error in form.password.errors %}
+                    <span class="error-message">✗ {{ error }}</span>
+                    {% endfor %}
+                {% endif %}
+                <div class="password-hint">Minimum 6 characters</div>
+            </div>
+
+            <!-- Confirm Password Field -->
+            <div class="form-group">
+                <label for="password_confirm">Confirm Password</label>
+                {{ form.password_confirm(id="password_confirm", placeholder="Re-enter your password", class="form-control") }}
+                {% if form.password_confirm.errors %}
+                    {% for error in form.password_confirm.errors %}
+                    <span class="error-message">✗ {{ error }}</span>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" class="btn">
+                Create Account
+            </button>
+        </form>
+
+        <p class="footer-text">
+            Already have an account? <a href="{{ url_for('login') }}">Log In</a>
+        </p>
     </div>
 </div>
+
 {% endblock %}
