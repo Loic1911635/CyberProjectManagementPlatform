@@ -1,57 +1,60 @@
 {% extends "base.html" %}
-{% block title %}Dashboard{% endblock %}
+
 {% block content %}
-<div class="container py-4">
-    <div class="d-flex justify-content-between mb-4">
-        <h1>Dashboard</h1>
-        <a href="{{ url_for('create_project') }}" class="btn btn-primary">New Project</a>
-    </div>
+<div class="container">
+    <h1>Dashboard</h1>
+
     <div class="row mb-4">
-        <div class="col-md-3 mb-3">
-            <div class="card text-white bg-primary">
-                <div class="card-body"><h3>{{ stats.total_projects }}</h3><p>Total Projects</p></div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="card text-white bg-success">
-                <div class="card-body"><h3>{{ stats.active_projects }}</h3><p>Active</p></div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="card text-white bg-info">
-                <div class="card-body"><h3>{{ stats.total_tasks }}</h3><p>Total Tasks</p></div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="card text-white bg-warning text-dark">
-                <div class="card-body"><h3>{{ stats.completed_tasks }}</h3><p>Completed</p></div>
-            </div>
-        </div>
-    </div>
-    <h2>Your Projects</h2>
-    {% if projects %}
-        <div class="row">
-            {% for project in projects %}
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5>{{ project.name }}</h5>
-                        <p class="text-muted">{{ project.description[:100] if project.description else 'No description' }}</p>
-                        <div class="mb-3">
-                            <small>{{ project.tasks.count() }} tasks</small>
-                        </div>
-                        <a href="{{ url_for('project_detail', project_id=project.id) }}" class="btn btn-sm btn-primary">View</a>
-                        <a href="{{ url_for('edit_project', project_id=project.id) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
-                    </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Projects</h5>
+                    <p class="card-text display-4">{{ stats.total_projects }}</p>
                 </div>
             </div>
-            {% endfor %}
         </div>
-    {% else %}
-        <div class="text-center py-5">
-            <h3>No projects yet</h3>
-            <a href="{{ url_for('create_project') }}" class="btn btn-primary">Create Your First Project</a>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Active</h5>
+                    <p class="card-text display-4">{{ stats.active_projects }}</p>
+                </div>
+            </div>
         </div>
-    {% endif %}
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Tasks</h5>
+                    <p class="card-text display-4">{{ stats.total_tasks }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Completed</h5>
+                    <p class="card-text display-4">{{ stats.completed_tasks }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <a href="{{ url_for('create_project') }}" class="btn btn-primary mb-3">+ New Project</a>
+
+    <div class="row">
+        {% for project in projects %}
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ project.name }}</h5>
+                    <p class="card-text">{{ project.description[:100] }}...</p>
+                    <p><small class="text-muted">Status: {{ project.status }}</small></p>
+                    <a href="{{ url_for('project_detail', project_id=project.id) }}" class="btn btn-sm btn-primary">View</a>
+                    <a href="{{ url_for('edit_project', project_id=project.id) }}" class="btn btn-sm btn-warning">Edit</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
 </div>
 {% endblock %}

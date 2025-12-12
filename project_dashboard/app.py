@@ -1,7 +1,7 @@
 from flask import Flask, render_template, redirect, url_for, flash, request
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from models import db, User, Project, Task
-from forms import LoginForm, SignupForm, ProjectForm, TaskForm
+from forms import LoginForm, SignupForm, ProjectForm, TaskForm, AddMemberForm
 import os
 
 app = Flask(__name__)
@@ -74,11 +74,7 @@ def dashboard():
 def create_project():
     form = ProjectForm()
     if form.validate_on_submit():
-        project = Project(
-            name=form.name.data, description=form.description.data,
-            start_date=form.start_date.data, end_date=form.end_date.data,
-            status=form.status.data, user_id=current_user.id
-        )
+        project = Project(name=form.name.data, description=form.description.data, start_date=form.start_date.data, end_date=form.end_date.data, status=form.status.data, user_id=current_user.id)
         db.session.add(project)
         db.session.commit()
         flash(f'Project "{project.name}" created!', 'success')
@@ -93,13 +89,9 @@ def project_detail(project_id):
         flash('Access denied.', 'danger')
         return redirect(url_for('dashboard'))
     tasks = project.tasks.order_by(Task.created_at.desc()).all()
-    task_stats = {
-        'todo': len([t for t in tasks if t.status == 'todo']),
-        'in_progress': len([t for t in tasks if t.status == 'in_progress']),
-        'done': len([t for t in tasks if t.status == 'done']),
-        'total': len(tasks)
-    }
-    return render_template('project_detail.html', project=project, tasks=tasks, task_stats=task_stats)
+    task_stats = {'todo': len([t for t in tasks if t.status == 'todo']), 'in_progress': len([t for t in tasks if t.status == 'in_progress']), 'done': len([t for t in tasks if t.status == 'done']), 'total': len(tasks)}
+    form = AddMemberForm()
+    return render_template('project_detail.html', project=project, tasks=tasks, task_stats=task_stats, form=form)
 
 @app.route('/project/<int:project_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -116,7 +108,7 @@ def edit_project(project_id):
         project.end_date = form.end_date.data
         project.status = form.status.data
         db.session.commit()
-        flash(f'Project updated!', 'success')
+        flash('Project updated!', 'success')
         return redirect(url_for('project_detail', project_id=project.id))
     return render_template('project_form.html', form=form, title='Edit Project', project=project)
 
@@ -133,23 +125,39 @@ def delete_project(project_id):
     return redirect(url_for('dashboard'))
 
 @app.route('/project/<int:project_id>/task/new', methods=['GET', 'POST'])
+@app.route('/project/<int:project_id>/task/new', methods=['GET', 'POST'])
 @login_required
 def create_task(project_id):
     project = Project.query.get_or_404(project_id)
     if project.user_id != current_user.id:
         flash('Access denied.', 'danger')
         return redirect(url_for('dashboard'))
+
     form = TaskForm()
-    if form.validate_on_submit():
-        task = Task(
-            title=form.title.data, description=form.description.data,
-            status=form.status.data, priority=form.priority.data,
-            due_date=form.due_date.data, project_id=project.id
-        )
-        db.session.add(task)
-        db.session.commit()
-        flash(f'Task created!', 'success')
-        return redirect(url_for('project_detail', project_id=project.id))
+    choices = [(0, 'Unassigned')] + [(u.id, u.username) for u in [project.owner] + list(project.members)]
+    form.assigned_to.choices = choices
+    form.assigned_to.validators = []
+
+    if request.method == 'POST':
+        print(f"DEBUG: POST data: title={request.form.get('title')}, status={request.form.get('status')}")
+        if form.validate():
+            assigned_id = form.assigned_to.data if form.assigned_to.data != 0 else None
+            task = Task(
+                title=form.title.data,
+                description=form.description.data,
+                status=form.status.data,
+                priority=form.priority.data,
+                due_date=form.due_date.data,
+                project_id=project.id,
+                assigned_user_id=assigned_id
+            )
+            db.session.add(task)
+            db.session.commit()
+            flash('Task created!', 'success')
+            return redirect(url_for('project_detail', project_id=project.id))
+        else:
+            print(f"DEBUG: Validation failed: {form.errors}")
+
     return render_template('task_form.html', form=form, project=project, title='Create Task')
 
 @app.route('/task/<int:task_id>/edit', methods=['GET', 'POST'])
@@ -160,12 +168,15 @@ def edit_task(task_id):
         flash('Access denied.', 'danger')
         return redirect(url_for('dashboard'))
     form = TaskForm(obj=task)
-    if form.validate_on_submit():
+    form.assigned_to.choices = [(0, 'Unassigned')] + [(u.id, u.username) for u in [task.project.owner] + list(task.project.members)]
+    print(f"DEBUG: method={request.method}, validate={form.validate_on_submit()}, errors={form.errors}")
+    if request.method == 'POST' and form.validate_on_submit():
         task.title = form.title.data
         task.description = form.description.data
         task.status = form.status.data
         task.priority = form.priority.data
         task.due_date = form.due_date.data
+        task.assigned_user_id = form.assigned_to.data if form.assigned_to.data != 0 else None
         task.completed = (form.status.data == 'done')
         db.session.commit()
         flash('Task updated!', 'success')
@@ -197,7 +208,40 @@ def delete_task(task_id):
     flash('Task deleted.', 'success')
     return redirect(url_for('project_detail', project_id=project_id))
 
-# Auto-initialize database
+@app.route('/project/<int:project_id>/add-member', methods=['POST'])
+@login_required
+def add_member(project_id):
+    project = Project.query.get_or_404(project_id)
+    if project.user_id != current_user.id:
+        flash('Access denied.', 'danger')
+        return redirect(url_for('dashboard'))
+    form = AddMemberForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        if user and user not in project.members:
+            project.members.append(user)
+            db.session.commit()
+            flash(f'{user.username} added to project!', 'success')
+        elif user in project.members:
+            flash('User is already a member.', 'info')
+        else:
+            flash('User not found.', 'danger')
+    return redirect(url_for('project_detail', project_id=project.id))
+
+@app.route('/project/<int:project_id>/remove-member/<int:user_id>', methods=['POST'])
+@login_required
+def remove_member(project_id, user_id):
+    project = Project.query.get_or_404(project_id)
+    if project.user_id != current_user.id:
+        flash('Access denied.', 'danger')
+        return redirect(url_for('dashboard'))
+    user = User.query.get_or_404(user_id)
+    if user in project.members:
+        project.members.remove(user)
+        db.session.commit()
+        flash(f'{user.username} removed from project.', 'success')
+    return redirect(url_for('project_detail', project_id=project.id))
+
 with app.app_context():
     db.create_all()
     print('✅ Database ready!')

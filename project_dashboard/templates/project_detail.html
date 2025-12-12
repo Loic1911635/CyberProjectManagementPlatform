@@ -1,60 +1,74 @@
 {% extends "base.html" %}
-{% block title %}{{ project.name }}{% endblock %}
+
 {% block content %}
-<div class="container py-4">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-            <li class="breadcrumb-item active">{{ project.name }}</li>
-        </ol>
-    </nav>
-    <div class="d-flex justify-content-between mb-4">
-        <div>
-            <h1>{{ project.name }}</h1>
-            <p class="text-muted">{{ project.description }}</p>
-        </div>
-        <div>
-            <a href="{{ url_for('create_task', project_id=project.id) }}" class="btn btn-primary">Add Task</a>
-            <a href="{{ url_for('edit_project', project_id=project.id) }}" class="btn btn-outline-secondary">Edit</a>
-            <form method="POST" action="{{ url_for('delete_project', project_id=project.id) }}" class="d-inline" onsubmit="return confirm('Delete?');">
-                <button type="submit" class="btn btn-outline-danger">Delete</button>
-            </form>
-        </div>
-    </div>
-    <h3>Tasks</h3>
-    {% if tasks %}
-        {% for task in tasks %}
-        <div class="card mb-3">
-            <div class="card-body">
-                <div class="row align-items-center">
-                    <div class="col-auto">
-                        <form method="POST" action="{{ url_for('toggle_task', task_id=task.id) }}">
-                            <button type="submit" class="btn btn-sm btn-outline-success">
-                                {% if task.completed %}✓{% else %}○{% endif %}
-                            </button>
-                        </form>
-                    </div>
-                    <div class="col">
-                        <h5 {% if task.completed %}class="text-decoration-line-through"{% endif %}>{{ task.title }}</h5>
-                        {% if task.description %}<p class="text-muted">{{ task.description }}</p>{% endif %}
-                        <span class="badge bg-primary">{{ task.status }}</span>
-                        <span class="badge bg-secondary">{{ task.priority }}</span>
-                    </div>
-                    <div class="col-auto">
-                        <a href="{{ url_for('edit_task', task_id=task.id) }}" class="btn btn-sm btn-outline-secondary">Edit</a>
-                        <form method="POST" action="{{ url_for('delete_task', task_id=task.id) }}" class="d-inline" onsubmit="return confirm('Delete?');">
-                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
-                        </form>
-                    </div>
+<div class="container">
+    <h1>{{ project.name }}</h1>
+    <p>{{ project.description }}</p>
+
+    <a href="{{ url_for('create_task', project_id=project.id) }}" class="btn btn-primary mb-3">+ New Task</a>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5>To Do</h5>
+                    <p class="display-4">{{ task_stats.todo }}</p>
                 </div>
             </div>
         </div>
-        {% endfor %}
-    {% else %}
-        <div class="text-center py-5">
-            <h3>No tasks yet</h3>
-            <a href="{{ url_for('create_task', project_id=project.id) }}" class="btn btn-primary">Add First Task</a>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5>In Progress</h5>
+                    <p class="display-4">{{ task_stats.in_progress }}</p>
+                </div>
+            </div>
         </div>
-    {% endif %}
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Done</h5>
+                    <p class="display-4">{{ task_stats.done }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-body">
+                    <h5>Total</h5>
+                    <p class="display-4">{{ task_stats.total }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h3>Tasks</h3>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Priority</th>
+                <th>Assigned</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in tasks %}
+            <tr>
+                <td>{{ task.title }}</td>
+                <td><span class="badge bg-secondary">{{ task.status }}</span></td>
+                <td>{{ task.priority }}</td>
+                <td>{{ task.assigned_user.username if task.assigned_user else 'Unassigned' }}</td>
+                <td>
+                    <a href="{{ url_for('edit_task', task_id=task.id) }}" class="btn btn-sm btn-warning">Edit</a>
+                    <form method="POST" action="{{ url_for('delete_task', task_id=task.id) }}" style="display:inline;">
+                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 {% endblock %}

@@ -1,10 +1,15 @@
-# models.py
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 
 db = SQLAlchemy()
+
+# Many-to-many association table for project members
+project_members = db.Table('project_members',
+    db.Column('user_id', db.Integer, db.ForeignKey('users.id'), primary_key=True),
+    db.Column('project_id', db.Integer, db.ForeignKey('projects.id'), primary_key=True)
+)
 
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -14,13 +19,14 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     projects = db.relationship('Project', backref='owner', lazy='dynamic', cascade='all, delete-orphan')
-
+    assigned_tasks = db.relationship('Task', backref='assigned_to', lazy='dynamic')
+    
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
-
+    
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
-
+    
     def __repr__(self):
         return f'<User {self.username}>'
 
@@ -36,8 +42,11 @@ class Project(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    
+    # Many-to-many relationship with users as members
+    members = db.relationship('User', secondary=project_members, backref='projects_as_member')
     tasks = db.relationship('Task', backref='project', lazy='dynamic', cascade='all, delete-orphan')
-
+    
     def __repr__(self):
         return f'<Project {self.name}>'
 
@@ -53,7 +62,9 @@ class Task(db.Model):
     completed = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
     project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
-
+    assigned_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    
     def __repr__(self):
         return f'<Task {self.title}>'

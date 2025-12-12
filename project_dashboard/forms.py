@@ -1,6 +1,5 @@
-# forms.py
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, TextAreaField, DateField, SelectField, BooleanField
+from wtforms import StringField, PasswordField, TextAreaField, DateField, SelectField, BooleanField, SelectMultipleField
 from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError
 from models import User
 
@@ -14,12 +13,12 @@ class SignupForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired(), Length(min=6)])
     password_confirm = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
-
+    
     def validate_username(self, username):
         user = User.query.filter_by(username=username.data).first()
         if user:
             raise ValidationError('Username already taken.')
-
+    
     def validate_email(self, email):
         user = User.query.filter_by(email=email.data).first()
         if user:
@@ -38,3 +37,12 @@ class TaskForm(FlaskForm):
     status = SelectField('Status', choices=[('todo', 'To Do'), ('in_progress', 'In Progress'), ('done', 'Done')])
     priority = SelectField('Priority', choices=[('low', 'Low'), ('medium', 'Medium'), ('high', 'High')])
     due_date = DateField('Due Date', format='%Y-%m-%d', validators=[])
+    assigned_to = SelectField('Assign To', coerce=int, choices=[], validators=[])
+
+class AddMemberForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired()])
+    
+    def validate_username(self, username):
+        user = User.query.filter_by(username=username.data).first()
+        if not user:
+            raise ValidationError('User not found.')
