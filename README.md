@@ -45,21 +45,3 @@ A secure, enterprise-grade project management application built with Flask, desi
 | **Frontend** | Bootstrap 5.3 |
 | **Server** | Gunicorn (production) |
 
-## 📁 Project Structure
-
-cyberpm/
-├── app.py # Main Flask application
-├── models.py # Database models (User, Project, Task)
-├── forms.py # WTForms form definitions
-├── requirements.txt # Python dependencies
-├── .env # Environment variables (SECRET_KEY)
-├── cyberpm.db # SQLite database (auto-generated)
-├── templates/ # Jinja2 HTML templates
-│ ├── base.html # Base template with navbar
-│ ├── login.html # Login page
-│ ├── signup.html # User registration
-│ ├── dashboard.html # Main dashboard
-│ ├── project_form.html # Create/edit project
-│ ├── project_detail.html # Project details + tasks
-│ └── task_form.html # Create/edit task
-└── static/ # Static assets (CSS, JS, images)
