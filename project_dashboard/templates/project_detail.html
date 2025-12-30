@@ -332,6 +332,7 @@
             {% endif %}
         </div>
         <div class="header-actions">
+            {% if project.user_id == current_user.id %}
             <a href="{{ url_for('create_task', project_id=project.id) }}" class="btn">
                 <i class="fas fa-plus"></i> New Task
             </a>
@@ -344,6 +345,7 @@
                     <i class="fas fa-trash"></i> Delete
                 </button>
             </form>
+            {% endif %}
         </div>
     </div>
 
@@ -355,6 +357,7 @@
         </div>
 
         <!-- Add Member Form -->
+        {% if project.user_id == current_user.id %}
         <div class="form-group">
             <label for="member-search">Add Team Member</label>
             <div class="search-input-wrapper" style="position: relative;">
@@ -362,6 +365,7 @@
                 <div class="autocomplete-results" id="autocomplete-results"></div>
             </div>
         </div>
+        {% endif %}
 
         <!-- Current Members -->
         <div style="margin-top: 20px;">
@@ -374,15 +378,17 @@
                 </div>
 
                 <!-- Members -->
-                {% for member in project.members %}
+{% for member in project.members %}
                 <div class="member-item">
                     <span>{{ member.username }}</span>
+                    {% if project.user_id == current_user.id %}
                     <form method="POST" action="{{ url_for('remove_member', project_id=project.id, user_id=member.id) }}" style="display: inline;" onsubmit="return confirm('Remove {{ member.username }} from project?');">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="member-remove-btn" title="Remove member">
                             ✕
                         </button>
                     </form>
+                    {% endif %}
                 </div>
                 {% endfor %}
             </div>
@@ -443,12 +449,16 @@
         </table>
         {% else %}
         <p style="color: var(--text-muted); text-align: center; padding: 20px;">
-            <i class="fas fa-inbox"></i> No tasks yet. <a href="{{ url_for('create_task', project_id=project.id) }}" style="color: var(--primary); text-decoration: none; font-weight: 600;">Create one</a>!
+            <i class="fas fa-inbox"></i> No tasks yet.
+            {% if project.user_id == current_user.id %}
+                <a href="{{ url_for('create_task', project_id=project.id) }}" style="color: var(--primary); text-decoration: none; font-weight: 600;">Create one</a>!
+            {% endif %}
         </p>
         {% endif %}
     </div>
 </div>
 
+{% if project.user_id == current_user.id %}
 <!-- Hidden form for member addition -->
 <form method="POST" id="add-member-form" action="{{ url_for('add_member', project_id=project.id) }}" style="display: none;">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -506,5 +516,6 @@
         }
     });
 </script>
+{% endif %}
 
 {% endblock %}

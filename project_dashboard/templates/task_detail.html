@@ -283,9 +283,11 @@
             {% endif %}
         </div>
         <div class="header-actions">
+            {% if task.project.user_id == current_user.id %}
             <a href="{{ url_for('edit_task', task_id=task.id) }}" class="btn btn-secondary">
                 <i class="fas fa-edit"></i> Edit
             </a>
+            {% endif %}
             <a href="{{ url_for('project_detail', project_id=task.project.id) }}" class="btn btn-secondary">
                 <i class="fas fa-arrow-left"></i> Back
             </a>
@@ -339,19 +341,25 @@
         <div style="margin-bottom: 20px;">
             {% for subtask in subtasks_list %}
             <div class="subtask-item">
+                {% if task.project.user_id == current_user.id %}
                 <form method="POST" action="{{ url_for('toggle_subtask', subtask_id=subtask.id) }}" style="display: inline; margin-right: 8px;">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" style="background: none; border: none; cursor: pointer; padding: 0;">
                         <i class="fas fa-check-circle" style="font-size: 18px; color: {% if subtask.completed %}var(--success){% else %}var(--text-muted){% endif %};"></i>
                     </button>
                 </form>
+                {% else %}
+                <i class="fas fa-check-circle" style="font-size: 18px; margin-right: 8px; color: {% if subtask.completed %}var(--success){% else %}var(--text-muted){% endif %};"></i>
+                {% endif %}
                 <span class="subtask-text{% if subtask.completed %} completed{% endif %}">{{ subtask.title }}</span>
+                {% if task.project.user_id == current_user.id %}
                 <form method="POST" action="{{ url_for('delete_subtask', subtask_id=subtask.id) }}" style="display: inline;" onsubmit="return confirm('Delete this subtask?');">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-sm btn-danger" style="padding: 6px 12px; font-size: 12px;">
                         <i class="fas fa-trash"></i> Delete
                     </button>
                 </form>
+                {% endif %}
             </div>
             {% endfor %}
         </div>
@@ -362,6 +370,7 @@
         {% endif %}
 
         <!-- Add Subtask Form -->
+        {% if task.project.user_id == current_user.id %}
         <form method="POST" action="{{ url_for('add_subtask', task_id=task.id) }}" style="display: flex; gap: 10px;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="text" name="title" placeholder="Add a new subtask..." 
@@ -371,6 +380,7 @@
                 <i class="fas fa-plus"></i> Add
             </button>
         </form>
+        {% endif %}
     </div>
 
     <!-- Project Info -->
@@ -386,6 +396,7 @@
     </div>
 
     <!-- Delete Task -->
+    {% if task.project.user_id == current_user.id %}
     <div style="text-align: center; margin-top: 40px;">
         <form method="POST" action="{{ url_for('delete_task', task_id=task.id) }}" style="display: inline;" onsubmit="return confirm('Delete this task? This cannot be undone.');">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -394,6 +405,7 @@
             </button>
         </form>
     </div>
+    {% endif %}
 </div>
 
 {% endblock %}

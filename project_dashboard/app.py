@@ -1,6 +1,7 @@
 from flask import Flask, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import CSRFProtect
+from sqlalchemy import or_
 from models import db, User, Project, Task, Subtask
 from forms import LoginForm, SignupForm, ProjectForm, TaskForm, AddMemberForm
 import os
@@ -63,7 +64,16 @@ def index():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    projects = current_user.projects.order_by(Project.created_at.desc()).all()
+    projects = (
+        Project.query.filter(
+            or_(
+                Project.user_id == current_user.id,
+                Project.members.any(User.id == current_user.id),
+            )
+        )
+        .order_by(Project.created_at.desc())
+        .all()
+    )
     stats = {
         'total_projects': len(projects),
         'active_projects': len([p for p in projects if p.status == 'active']),
@@ -88,7 +98,7 @@ def create_project():
 @login_required
 def project_detail(project_id):
     project = Project.query.get_or_404(project_id)
-    if project.user_id != current_user.id:
+    if project.user_id != current_user.id and current_user not in project.members:
         flash('Access denied.', 'danger')
         return redirect(url_for('dashboard'))
     tasks = project.tasks.order_by(Task.created_at.desc()).all()
@@ -160,7 +170,7 @@ def create_task(project_id):
 @login_required
 def task_detail(task_id):
     task = Task.query.get_or_404(task_id)
-    if task.project.user_id != current_user.id:
+    if task.project.user_id != current_user.id and current_user not in task.project.members:
         flash('Access denied.', 'danger')
         return redirect(url_for('dashboard'))
     subtasks_list = task.subtasks.all()
