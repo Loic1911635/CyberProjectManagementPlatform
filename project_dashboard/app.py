@@ -1,5 +1,6 @@
 from flask import Flask, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_wtf.csrf import CSRFProtect
 from models import db, User, Project, Task, Subtask
 from forms import LoginForm, SignupForm, ProjectForm, TaskForm, AddMemberForm
 import os
@@ -8,6 +9,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///cyberpm.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+csrf = CSRFProtect(app)
 
 db.init_app(app)
 
@@ -47,7 +49,7 @@ def signup():
         return redirect(url_for('login'))
     return render_template('signup.html', form=form)
 
-@app.route('/logout')
+@app.route('/logout', methods=['POST'])
 @login_required
 def logout():
     logout_user()

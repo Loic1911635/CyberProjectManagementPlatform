@@ -340,12 +340,14 @@
             {% for subtask in subtasks_list %}
             <div class="subtask-item">
                 <form method="POST" action="{{ url_for('toggle_subtask', subtask_id=subtask.id) }}" style="display: inline; margin-right: 8px;">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" style="background: none; border: none; cursor: pointer; padding: 0;">
                         <i class="fas fa-check-circle" style="font-size: 18px; color: {% if subtask.completed %}var(--success){% else %}var(--text-muted){% endif %};"></i>
                     </button>
                 </form>
                 <span class="subtask-text{% if subtask.completed %} completed{% endif %}">{{ subtask.title }}</span>
                 <form method="POST" action="{{ url_for('delete_subtask', subtask_id=subtask.id) }}" style="display: inline;" onsubmit="return confirm('Delete this subtask?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit" class="btn btn-sm btn-danger" style="padding: 6px 12px; font-size: 12px;">
                         <i class="fas fa-trash"></i> Delete
                     </button>
@@ -361,6 +363,7 @@
 
         <!-- Add Subtask Form -->
         <form method="POST" action="{{ url_for('add_subtask', task_id=task.id) }}" style="display: flex; gap: 10px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="text" name="title" placeholder="Add a new subtask..." 
                    style="flex: 1; padding: 10px 14px; border: 2px solid rgba(102, 126, 234, 0.2); border-radius: 8px; font-size: 14px;" 
                    required>
@@ -385,6 +388,7 @@
     <!-- Delete Task -->
     <div style="text-align: center; margin-top: 40px;">
         <form method="POST" action="{{ url_for('delete_task', task_id=task.id) }}" style="display: inline;" onsubmit="return confirm('Delete this task? This cannot be undone.');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn btn-danger btn-sm" style="padding: 12px 28px; font-size: 14px;">
                 <i class="fas fa-trash"></i> Delete Task
             </button>

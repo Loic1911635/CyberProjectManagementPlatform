@@ -17,7 +17,14 @@
                 <ul class="navbar-nav ms-auto">
                     {% if current_user.is_authenticated %}
                         <li class="nav-item"><a class="nav-link" href="/dashboard">Dashboard</a></li>
-                        <li class="nav-item"><a class="nav-link" href="/logout">Logout ({{ current_user.username }})</a></li>
+                        <li class="nav-item">
+                            <form method="POST" action="{{ url_for('logout') }}" style="display: inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="nav-link btn btn-link p-0" style="display: inline; border: none; background: none;">
+                                    Logout ({{ current_user.username }})
+                                </button>
+                            </form>
+                        </li>
                     {% else %}
                         <li class="nav-item"><a class="nav-link" href="/login">Login</a></li>
                         <li class="nav-item"><a class="nav-link" href="/signup">Sign Up</a></li>

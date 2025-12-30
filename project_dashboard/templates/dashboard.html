@@ -373,7 +373,8 @@
             <div class="navbar-welcome-name">{{ current_user.username }}</div>
         </div>
         
-        <form method="GET" action="{{ url_for('logout') }}" style="display: inline;">
+        <form method="POST" action="{{ url_for('logout') }}" style="display: inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="logout-btn">
                 <i class="fas fa-sign-out-alt"></i> Logout
             </button>

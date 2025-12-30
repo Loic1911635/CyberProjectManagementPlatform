@@ -339,6 +339,7 @@
                 <i class="fas fa-edit"></i> Edit
             </a>
             <form method="POST" action="{{ url_for('delete_project', project_id=project.id) }}" style="display: inline;" onsubmit="return confirm('Delete this project? This cannot be undone.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn btn-danger btn-sm" style="padding: 8px 16px;">
                     <i class="fas fa-trash"></i> Delete
                 </button>
@@ -377,6 +378,7 @@
                 <div class="member-item">
                     <span>{{ member.username }}</span>
                     <form method="POST" action="{{ url_for('remove_member', project_id=project.id, user_id=member.id) }}" style="display: inline;" onsubmit="return confirm('Remove {{ member.username }} from project?');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="member-remove-btn" title="Remove member">
                             ✕
                         </button>
@@ -449,6 +451,7 @@
 
 <!-- Hidden form for member addition -->
 <form method="POST" id="add-member-form" action="{{ url_for('add_member', project_id=project.id) }}" style="display: none;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input type="hidden" name="user_id" id="selected-user-id" value="">
 </form>
 
