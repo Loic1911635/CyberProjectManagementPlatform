@@ -51,6 +51,7 @@ class Project(db.Model):
     description = db.Column(db.Text)
     start_date = db.Column(db.Date)
     end_date = db.Column(db.Date)
+    sprint_length_days = db.Column(db.Integer, default=7)
     status = db.Column(db.String(50), default='active')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -59,6 +60,7 @@ class Project(db.Model):
     # Many-to-many relationship with users as members
     members = db.relationship('User', secondary=project_members, backref='projects_as_member')
     tasks = db.relationship('Task', backref='project', lazy='dynamic', cascade='all, delete-orphan')
+    sprints = db.relationship('Sprint', backref='project', lazy='dynamic', cascade='all, delete-orphan')
     
     def __repr__(self):
         return f'<Project {self.name}>'
@@ -77,6 +79,7 @@ class Task(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
     assigned_user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    sprint_id = db.Column(db.Integer, db.ForeignKey('sprints.id'), nullable=True)
     
     # Relationship to subtasks
     subtasks = db.relationship('Subtask', backref='task', lazy='dynamic', cascade='all, delete-orphan')
@@ -91,6 +94,16 @@ class Task(db.Model):
     
     def __repr__(self):
         return f'<Task {self.title}>'
+
+class Sprint(db.Model):
+    __tablename__ = 'sprints'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    tasks = db.relationship('Task', backref='sprint', lazy='dynamic')
 
 class Subtask(db.Model):
     __tablename__ = 'subtasks'

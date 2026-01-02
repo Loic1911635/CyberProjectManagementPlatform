@@ -2,7 +2,8 @@ from flask import Flask, render_template, redirect, url_for, flash, request, jso
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import or_, inspect, text
-from models import db, User, Project, Task, Subtask, ProjectMemberPermission
+from datetime import timedelta
+from models import db, User, Project, Task, Subtask, ProjectMemberPermission, Sprint
 from forms import LoginForm, SignupForm, ProjectForm, TaskForm, AddMemberForm
 import os
 
@@ -42,6 +43,29 @@ def user_can_modify_task(task, user):
     if task.locked:
         return False
     return user_can_edit_tasks(task.project, user)
+
+def build_sprints(project):
+    if not project.start_date or not project.end_date or not project.sprint_length_days:
+        return []
+    sprint_length = project.sprint_length_days
+    if sprint_length < 1:
+        return []
+    sprints = []
+    current_start = project.start_date
+    index = 1
+    while current_start <= project.end_date:
+        current_end = min(current_start + timedelta(days=sprint_length - 1), project.end_date)
+        sprints.append(
+            Sprint(
+                name=f'Sprint {index}',
+                start_date=current_start,
+                end_date=current_end,
+                project_id=project.id,
+            )
+        )
+        index += 1
+        current_start = current_end + timedelta(days=1)
+    return sprints
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -108,9 +132,21 @@ def dashboard():
 def create_project():
     form = ProjectForm()
     if form.validate_on_submit():
-        project = Project(name=form.name.data, description=form.description.data, start_date=form.start_date.data, end_date=form.end_date.data, status=form.status.data, user_id=current_user.id)
+        project = Project(
+            name=form.name.data,
+            description=form.description.data,
+            start_date=form.start_date.data,
+            end_date=form.end_date.data,
+            sprint_length_days=form.sprint_length_days.data or 7,
+            status=form.status.data,
+            user_id=current_user.id,
+        )
         db.session.add(project)
         db.session.commit()
+        sprints = build_sprints(project)
+        if sprints:
+            db.session.add_all(sprints)
+            db.session.commit()
         flash(f'Project "{project.name}" created!', 'success')
         return redirect(url_for('project_detail', project_id=project.id))
     return render_template('project_form.html', form=form, title='Create Project')
@@ -129,6 +165,7 @@ def project_detail(project_id):
         perm.user_id: perm
         for perm in ProjectMemberPermission.query.filter_by(project_id=project.id).all()
     }
+    sprints = project.sprints.order_by(Sprint.start_date.asc()).all()
     return render_template(
         'project_detail.html',
         project=project,
@@ -138,6 +175,7 @@ def project_detail(project_id):
         is_owner=(project.user_id == current_user.id),
         can_edit_tasks=user_can_edit_tasks(project, current_user),
         member_permissions=member_permissions,
+        sprints=sprints,
     )
 
 @app.route('/project/<int:project_id>/edit', methods=['GET', 'POST'])
@@ -154,10 +192,34 @@ def edit_project(project_id):
         project.start_date = form.start_date.data
         project.end_date = form.end_date.data
         project.status = form.status.data
+        if form.sprint_length_days.data:
+            project.sprint_length_days = form.sprint_length_days.data
         db.session.commit()
         flash('Project updated!', 'success')
         return redirect(url_for('project_detail', project_id=project.id))
     return render_template('project_form.html', form=form, title='Edit Project', project=project)
+
+@app.route('/project/<int:project_id>/sprints/generate', methods=['POST'])
+@login_required
+def generate_sprints(project_id):
+    project = Project.query.get_or_404(project_id)
+    if project.user_id != current_user.id:
+        flash('Access denied.', 'danger')
+        return redirect(url_for('dashboard'))
+    if not project.start_date or not project.end_date or not project.sprint_length_days:
+        flash('Please set start date, end date, and sprint length before generating sprints.', 'warning')
+        return redirect(url_for('project_detail', project_id=project.id))
+    Task.query.filter_by(project_id=project.id).update({Task.sprint_id: None})
+    Sprint.query.filter_by(project_id=project.id).delete()
+    db.session.commit()
+    sprints = build_sprints(project)
+    if not sprints:
+        flash('Unable to generate sprints with the current settings.', 'warning')
+        return redirect(url_for('project_detail', project_id=project.id))
+    db.session.add_all(sprints)
+    db.session.commit()
+    flash(f'{len(sprints)} sprint(s) generated.', 'success')
+    return redirect(url_for('project_detail', project_id=project.id))
 
 @app.route('/project/<int:project_id>/delete', methods=['POST'])
 @login_required
@@ -185,9 +247,16 @@ def create_task(project_id):
     choices = [(0, 'Unassigned')] + [(u.id, u.username) for u in [project.owner] + list(project.members)]
     form.assigned_to.choices = choices
     form.assigned_to.validators = []
+    sprint_choices = [(0, 'No Sprint')] + [
+        (s.id, f"{s.name} ({s.start_date} - {s.end_date})")
+        for s in project.sprints.order_by(Sprint.start_date.asc()).all()
+    ]
+    form.sprint_id.choices = sprint_choices
+    form.sprint_id.validators = []
     if request.method == 'POST':
         if form.validate():
             assigned_id = form.assigned_to.data if form.assigned_to.data != 0 else None
+            sprint_id = form.sprint_id.data if form.sprint_id.data != 0 else None
             task = Task(
                 title=form.title.data,
                 description=form.description.data,
@@ -195,7 +264,8 @@ def create_task(project_id):
                 priority=form.priority.data,
                 due_date=form.due_date.data,
                 project_id=project.id,
-                assigned_user_id=assigned_id
+                assigned_user_id=assigned_id,
+                sprint_id=sprint_id,
             )
             db.session.add(task)
             db.session.commit()
@@ -241,8 +311,15 @@ def edit_task(task_id):
     choices = [(0, 'Unassigned')] + [(u.id, u.username) for u in [task.project.owner] + list(task.project.members)]
     form.assigned_to.choices = choices
     form.assigned_to.validators = []
+    sprint_choices = [(0, 'No Sprint')] + [
+        (s.id, f"{s.name} ({s.start_date} - {s.end_date})")
+        for s in task.project.sprints.order_by(Sprint.start_date.asc()).all()
+    ]
+    form.sprint_id.choices = sprint_choices
+    form.sprint_id.validators = []
     if request.method == 'GET':
         form.assigned_to.data = task.assigned_user_id or 0
+        form.sprint_id.data = task.sprint_id or 0
     if request.method == 'POST' and form.validate():
         task.title = form.title.data
         task.description = form.description.data
@@ -250,6 +327,7 @@ def edit_task(task_id):
         task.priority = form.priority.data
         task.due_date = form.due_date.data
         task.assigned_user_id = form.assigned_to.data if form.assigned_to.data != 0 else None
+        task.sprint_id = form.sprint_id.data if form.sprint_id.data != 0 else None
         task.completed = (form.status.data == 'done')
         db.session.commit()
         flash('Task updated!', 'success')
@@ -430,6 +508,13 @@ with app.app_context():
     task_columns = [column['name'] for column in inspector.get_columns('tasks')]
     if 'locked' not in task_columns:
         db.session.execute(text('ALTER TABLE tasks ADD COLUMN locked BOOLEAN DEFAULT 0'))
+        db.session.commit()
+    if 'sprint_id' not in task_columns:
+        db.session.execute(text('ALTER TABLE tasks ADD COLUMN sprint_id INTEGER'))
+        db.session.commit()
+    project_columns = [column['name'] for column in inspector.get_columns('projects')]
+    if 'sprint_length_days' not in project_columns:
+        db.session.execute(text('ALTER TABLE projects ADD COLUMN sprint_length_days INTEGER DEFAULT 7'))
         db.session.commit()
     print('✅ Database ready!')
 

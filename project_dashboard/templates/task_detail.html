@@ -338,6 +338,10 @@
             <div class="stat-label">Assigned To</div>
         </div>
         <div class="stat-card">
+            <div class="stat-value">{{ task.sprint.name if task.sprint else 'No Sprint' }}</div>
+            <div class="stat-label">Sprint</div>
+        </div>
+        <div class="stat-card">
             <div class="stat-value">{{ task.due_date.strftime('%b %d') if task.due_date else 'No Date' }}</div>
             <div class="stat-label">Due Date</div>
         </div>

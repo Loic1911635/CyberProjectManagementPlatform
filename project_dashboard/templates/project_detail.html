@@ -450,6 +450,49 @@
         </div>
     </div>
 
+    <!-- Sprints Section -->
+    <div class="card">
+        <div class="card-header">
+            <span><i class="fas fa-layer-group"></i> Sprints</span>
+            {% if is_owner %}
+            <form method="POST" action="{{ url_for('generate_sprints', project_id=project.id) }}" style="display: inline;" onsubmit="return confirm('Regenerate sprints? This will clear sprint assignments.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-secondary btn-sm">Generate</button>
+            </form>
+            {% endif %}
+        </div>
+        <div style="margin-bottom: 12px; color: var(--text-muted); font-size: 12px;">
+            Sprint length: {{ project.sprint_length_days or 'Not set' }} day(s)
+            {% if project.start_date and project.end_date %}
+                • {{ project.start_date }} → {{ project.end_date }}
+            {% endif %}
+        </div>
+        {% if sprints %}
+        <table class="task-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Start</th>
+                    <th>End</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sprint in sprints %}
+                <tr>
+                    <td>{{ sprint.name }}</td>
+                    <td>{{ sprint.start_date }}</td>
+                    <td>{{ sprint.end_date }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color: var(--text-muted); text-align: center; padding: 20px;">
+            <i class="fas fa-inbox"></i> No sprints yet.
+        </p>
+        {% endif %}
+    </div>
+
     <!-- Tasks Section -->
     <div class="card">
         <div class="card-header">
@@ -467,6 +510,7 @@
                     <th>Status</th>
                     <th>Priority</th>
                     <th>Assigned</th>
+                    <th>Sprint</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -500,6 +544,7 @@
                         {% endif %}
                     </td>
                     <td>{{ task.assigned_to.username if task.assigned_to else 'Unassigned' }}</td>
+                    <td>{{ task.sprint.name if task.sprint else 'No Sprint' }}</td>
                     <td>
                         <a href="{{ url_for('task_detail', task_id=task.id) }}" class="btn btn-sm">View</a>
                     </td>

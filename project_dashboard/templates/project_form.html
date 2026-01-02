@@ -52,6 +52,15 @@
             {% endif %}
         </div>
 
+        <div style="margin-bottom: 15px;">
+            {{ form.sprint_length_days.label(style="display: block; margin-bottom: 5px; font-weight: bold;") }}
+            {{ form.sprint_length_days(style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;", placeholder="e.g. 7") }}
+            {% if form.sprint_length_days.errors %}
+                <div style="color: #c33; font-size: 12px; margin-top: 5px;">{{ form.sprint_length_days.errors[0] }}</div>
+            {% endif %}
+            <div style="color: #666; font-size: 12px; margin-top: 6px;">Used to generate sprints from the project dates.</div>
+        </div>
+
         <div style="margin-bottom: 20px;">
             {{ form.status.label(style="display: block; margin-bottom: 5px; font-weight: bold;") }}
             {{ form.status(style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;") }}

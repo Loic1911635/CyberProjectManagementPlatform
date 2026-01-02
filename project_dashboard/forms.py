@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, TextAreaField, DateField, SelectField, BooleanField, SelectMultipleField
-from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError
+from wtforms import StringField, PasswordField, TextAreaField, DateField, SelectField, BooleanField, SelectMultipleField, IntegerField
+from wtforms.validators import DataRequired, Email, EqualTo, Length, ValidationError, Optional, NumberRange
 from models import User
 
 class LoginForm(FlaskForm):
@@ -29,6 +29,7 @@ class ProjectForm(FlaskForm):
     description = TextAreaField('Description')
     start_date = DateField('Start Date', format='%Y-%m-%d', validators=[])
     end_date = DateField('End Date', format='%Y-%m-%d', validators=[])
+    sprint_length_days = IntegerField('Sprint Length (days)', validators=[Optional(), NumberRange(min=1, max=60)])
     status = SelectField('Status', choices=[('active', 'Active'), ('completed', 'Completed'), ('archived', 'Archived')])
 
 class TaskForm(FlaskForm):
@@ -38,6 +39,7 @@ class TaskForm(FlaskForm):
     priority = SelectField('Priority', choices=[('low', 'Low'), ('medium', 'Medium'), ('high', 'High')])
     due_date = DateField('Due Date', format='%Y-%m-%d', validators=[])
     assigned_to = SelectField('Assign To', coerce=int, choices=[], validators=[])
+    sprint_id = SelectField('Sprint', coerce=int, choices=[], validators=[])
 
 class AddMemberForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])

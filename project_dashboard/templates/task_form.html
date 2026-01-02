@@ -336,6 +336,16 @@
                 </div>
             </div>
 
+            <div class="form-row">
+                <div class="form-group">
+                    {{ form.sprint_id.label(class="form-label") }}
+                    {{ form.sprint_id(class="form-control") }}
+                    {% if form.sprint_id.errors %}
+                        <div class="error-message">{{ form.sprint_id.errors[0] }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
             <div class="form-actions">
                 <button type="submit" class="btn-primary">
                     <i class="fas fa-save"></i> {% if task %}Update Task{% else %}Create Task{% endif %}
