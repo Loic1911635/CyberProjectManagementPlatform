@@ -37,7 +37,9 @@ class TaskForm(FlaskForm):
     description = TextAreaField('Description')
     status = SelectField('Status', choices=[('todo', 'To Do'), ('in_progress', 'In Progress'), ('done', 'Done')])
     priority = SelectField('Priority', choices=[('low', 'Low'), ('medium', 'Medium'), ('high', 'High')])
+    start_date = DateField('Start Date', format='%Y-%m-%d', validators=[Optional()])
     due_date = DateField('Due Date', format='%Y-%m-%d', validators=[])
+    end_date = DateField('End Date', format='%Y-%m-%d', validators=[Optional()])
     assigned_to = SelectField('Assign To', coerce=int, choices=[], validators=[])
     sprint_id = SelectField('Sprint', coerce=int, choices=[], validators=[])
 

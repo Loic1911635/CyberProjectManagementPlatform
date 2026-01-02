@@ -342,6 +342,14 @@
             <div class="stat-label">Sprint</div>
         </div>
         <div class="stat-card">
+            <div class="stat-value">{{ task.start_date.strftime('%b %d') if task.start_date else 'No Date' }}</div>
+            <div class="stat-label">Start Date</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ task.end_date.strftime('%b %d') if task.end_date else 'No Date' }}</div>
+            <div class="stat-label">End Date</div>
+        </div>
+        <div class="stat-card">
             <div class="stat-value">{{ task.due_date.strftime('%b %d') if task.due_date else 'No Date' }}</div>
             <div class="stat-label">Due Date</div>
         </div>

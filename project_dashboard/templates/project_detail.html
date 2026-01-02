@@ -373,6 +373,9 @@
                 <i class="fas fa-plus"></i> New Task
             </a>
             {% endif %}
+            <a href="{{ url_for('project_calendar', project_id=project.id) }}" class="btn btn-secondary">
+                <i class="fas fa-calendar-alt"></i> Calendar
+            </a>
             {% if is_owner %}
             <a href="{{ url_for('edit_project', project_id=project.id) }}" class="btn btn-secondary">
                 <i class="fas fa-edit"></i> Edit
@@ -474,14 +477,35 @@
                     <th>Name</th>
                     <th>Start</th>
                     <th>End</th>
+                    <th>Description</th>
+                    {% if is_owner %}
+                    <th>Actions</th>
+                    {% endif %}
                 </tr>
             </thead>
             <tbody>
                 {% for sprint in sprints %}
                 <tr>
+                    {% if is_owner %}
+                    <form id="sprint-form-{{ sprint.id }}" method="POST" action="{{ url_for('update_sprint', project_id=project.id, sprint_id=sprint.id) }}"></form>
+                    <td>
+                        <input form="sprint-form-{{ sprint.id }}" type="text" name="name" value="{{ sprint.name }}" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 6px;">
+                    </td>
+                    <td>{{ sprint.start_date }}</td>
+                    <td>{{ sprint.end_date }}</td>
+                    <td>
+                        <input form="sprint-form-{{ sprint.id }}" type="text" name="description" value="{{ sprint.description or '' }}" placeholder="Optional description" style="width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 6px;">
+                    </td>
+                    <td>
+                        <input form="sprint-form-{{ sprint.id }}" type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button form="sprint-form-{{ sprint.id }}" type="submit" class="btn btn-secondary btn-sm">Save</button>
+                    </td>
+                    {% else %}
                     <td>{{ sprint.name }}</td>
                     <td>{{ sprint.start_date }}</td>
                     <td>{{ sprint.end_date }}</td>
+                    <td>{{ sprint.description or '-' }}</td>
+                    {% endif %}
                 </tr>
                 {% endfor %}
             </tbody>

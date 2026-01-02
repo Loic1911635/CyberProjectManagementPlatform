@@ -2,7 +2,8 @@ from flask import Flask, render_template, redirect, url_for, flash, request, jso
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import CSRFProtect
 from sqlalchemy import or_, inspect, text
-from datetime import timedelta
+from datetime import timedelta, date
+import calendar
 from models import db, User, Project, Task, Subtask, ProjectMemberPermission, Sprint
 from forms import LoginForm, SignupForm, ProjectForm, TaskForm, AddMemberForm
 import os
@@ -66,6 +67,12 @@ def build_sprints(project):
         index += 1
         current_start = current_end + timedelta(days=1)
     return sprints
+
+def shift_month(year, month, delta):
+    new_month = month + delta
+    new_year = year + (new_month - 1) // 12
+    new_month = (new_month - 1) % 12 + 1
+    return new_year, new_month
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -221,6 +228,92 @@ def generate_sprints(project_id):
     flash(f'{len(sprints)} sprint(s) generated.', 'success')
     return redirect(url_for('project_detail', project_id=project.id))
 
+@app.route('/project/<int:project_id>/sprint/<int:sprint_id>/update', methods=['POST'])
+@login_required
+def update_sprint(project_id, sprint_id):
+    project = Project.query.get_or_404(project_id)
+    if project.user_id != current_user.id:
+        flash('Access denied.', 'danger')
+        return redirect(url_for('dashboard'))
+    sprint = Sprint.query.get_or_404(sprint_id)
+    if sprint.project_id != project.id:
+        flash('Invalid sprint.', 'danger')
+        return redirect(url_for('project_detail', project_id=project.id))
+    name = (request.form.get('name') or '').strip()
+    description = (request.form.get('description') or '').strip()
+    if name:
+        sprint.name = name
+    sprint.description = description or None
+    db.session.commit()
+    flash('Sprint updated.', 'success')
+    return redirect(url_for('project_detail', project_id=project.id))
+
+@app.route('/project/<int:project_id>/calendar')
+@login_required
+def project_calendar(project_id):
+    project = Project.query.get_or_404(project_id)
+    if not is_project_member(project, current_user):
+        flash('Access denied.', 'danger')
+        return redirect(url_for('dashboard'))
+    month_param = request.args.get('month', '').strip()
+    ref_date = project.start_date or date.today()
+    year = ref_date.year
+    month = ref_date.month
+    if month_param:
+        try:
+            parts = month_param.split('-')
+            year = int(parts[0])
+            month = int(parts[1])
+        except (ValueError, IndexError):
+            pass
+    try:
+        month_start = date(year, month, 1)
+    except ValueError:
+        year = ref_date.year
+        month = ref_date.month
+        month_start = date(year, month, 1)
+    month_end = date(year, month, calendar.monthrange(year, month)[1])
+
+    events = {}
+    def add_event_range(start_date, end_date, label, event_type):
+        if not start_date or not end_date:
+            return
+        current = max(start_date, month_start)
+        final = min(end_date, month_end)
+        while current <= final:
+            key = current.isoformat()
+            events.setdefault(key, []).append({'label': label, 'type': event_type})
+            current += timedelta(days=1)
+
+    for sprint in project.sprints.all():
+        add_event_range(sprint.start_date, sprint.end_date, f"Sprint: {sprint.name}", 'sprint')
+
+    tasks = Task.query.filter_by(project_id=project.id).all()
+    for task in tasks:
+        start = task.start_date or task.due_date
+        end = task.end_date or task.due_date or task.start_date
+        if not start or not end:
+            continue
+        add_event_range(start, end, f"Task: {task.title}", 'task')
+
+    cal = calendar.Calendar(firstweekday=0)
+    weeks = cal.monthdatescalendar(year, month)
+    prev_year, prev_month = shift_month(year, month, -1)
+    next_year, next_month = shift_month(year, month, 1)
+
+    return render_template(
+        'project_calendar.html',
+        project=project,
+        weeks=weeks,
+        events=events,
+        month_label=month_start.strftime('%B %Y'),
+        current_month=month,
+        current_year=year,
+        prev_month=f"{prev_year:04d}-{prev_month:02d}",
+        next_month=f"{next_year:04d}-{next_month:02d}",
+        today=date.today(),
+    )
+
 @app.route('/project/<int:project_id>/delete', methods=['POST'])
 @login_required
 def delete_project(project_id):
@@ -262,7 +355,9 @@ def create_task(project_id):
                 description=form.description.data,
                 status=form.status.data,
                 priority=form.priority.data,
+                start_date=form.start_date.data,
                 due_date=form.due_date.data,
+                end_date=form.end_date.data,
                 project_id=project.id,
                 assigned_user_id=assigned_id,
                 sprint_id=sprint_id,
@@ -325,7 +420,9 @@ def edit_task(task_id):
         task.description = form.description.data
         task.status = form.status.data
         task.priority = form.priority.data
+        task.start_date = form.start_date.data
         task.due_date = form.due_date.data
+        task.end_date = form.end_date.data
         task.assigned_user_id = form.assigned_to.data if form.assigned_to.data != 0 else None
         task.sprint_id = form.sprint_id.data if form.sprint_id.data != 0 else None
         task.completed = (form.status.data == 'done')
@@ -512,10 +609,21 @@ with app.app_context():
     if 'sprint_id' not in task_columns:
         db.session.execute(text('ALTER TABLE tasks ADD COLUMN sprint_id INTEGER'))
         db.session.commit()
+    if 'start_date' not in task_columns:
+        db.session.execute(text('ALTER TABLE tasks ADD COLUMN start_date DATE'))
+        db.session.commit()
+    if 'end_date' not in task_columns:
+        db.session.execute(text('ALTER TABLE tasks ADD COLUMN end_date DATE'))
+        db.session.commit()
     project_columns = [column['name'] for column in inspector.get_columns('projects')]
     if 'sprint_length_days' not in project_columns:
         db.session.execute(text('ALTER TABLE projects ADD COLUMN sprint_length_days INTEGER DEFAULT 7'))
         db.session.commit()
+    if 'sprints' in inspector.get_table_names():
+        sprint_columns = [column['name'] for column in inspector.get_columns('sprints')]
+        if 'description' not in sprint_columns:
+            db.session.execute(text('ALTER TABLE sprints ADD COLUMN description TEXT'))
+            db.session.commit()
     print('✅ Database ready!')
 
 if __name__ == '__main__':

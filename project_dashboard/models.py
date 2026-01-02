@@ -72,7 +72,9 @@ class Task(db.Model):
     description = db.Column(db.Text)
     status = db.Column(db.String(50), default='todo')
     priority = db.Column(db.String(20), default='medium')
+    start_date = db.Column(db.Date)
     due_date = db.Column(db.Date)
+    end_date = db.Column(db.Date)
     completed = db.Column(db.Boolean, default=False)
     locked = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -99,6 +101,7 @@ class Sprint(db.Model):
     __tablename__ = 'sprints'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=False)
     project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
