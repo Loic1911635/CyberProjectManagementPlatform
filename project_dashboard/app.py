@@ -241,6 +241,8 @@ def edit_task(task_id):
     choices = [(0, 'Unassigned')] + [(u.id, u.username) for u in [task.project.owner] + list(task.project.members)]
     form.assigned_to.choices = choices
     form.assigned_to.validators = []
+    if request.method == 'GET':
+        form.assigned_to.data = task.assigned_user_id or 0
     if request.method == 'POST' and form.validate():
         task.title = form.title.data
         task.description = form.description.data
