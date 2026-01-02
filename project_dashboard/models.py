@@ -11,6 +11,19 @@ project_members = db.Table('project_members',
     db.Column('project_id', db.Integer, db.ForeignKey('projects.id'), primary_key=True)
 )
 
+class ProjectMemberPermission(db.Model):
+    __tablename__ = 'project_member_permissions'
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    can_create_tasks = db.Column(db.Boolean, default=False, nullable=False)
+    can_edit_tasks = db.Column(db.Boolean, default=False, nullable=False)
+    can_assign_tasks = db.Column(db.Boolean, default=False, nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint('project_id', 'user_id', name='uq_project_member_permissions'),
+    )
+
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
@@ -59,6 +72,7 @@ class Task(db.Model):
     priority = db.Column(db.String(20), default='medium')
     due_date = db.Column(db.Date)
     completed = db.Column(db.Boolean, default=False)
+    locked = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)

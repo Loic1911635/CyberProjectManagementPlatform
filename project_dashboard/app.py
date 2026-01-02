@@ -1,8 +1,8 @@
 from flask import Flask, render_template, redirect, url_for, flash, request, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_wtf.csrf import CSRFProtect
-from sqlalchemy import or_
-from models import db, User, Project, Task, Subtask
+from sqlalchemy import or_, inspect, text
+from models import db, User, Project, Task, Subtask, ProjectMemberPermission
 from forms import LoginForm, SignupForm, ProjectForm, TaskForm, AddMemberForm
 import os
 
@@ -21,6 +21,27 @@ login_manager.login_view = 'login'
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
+
+def is_project_member(project, user):
+    return project.user_id == user.id or user in project.members
+
+def get_member_permissions(project_id, user_id):
+    return ProjectMemberPermission.query.filter_by(project_id=project_id, user_id=user_id).first()
+
+def user_can_edit_tasks(project, user):
+    if project.user_id == user.id:
+        return True
+    if user not in project.members:
+        return False
+    permissions = get_member_permissions(project.id, user.id)
+    return bool(permissions and permissions.can_edit_tasks)
+
+def user_can_modify_task(task, user):
+    if task.project.user_id == user.id:
+        return True
+    if task.locked:
+        return False
+    return user_can_edit_tasks(task.project, user)
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -98,13 +119,26 @@ def create_project():
 @login_required
 def project_detail(project_id):
     project = Project.query.get_or_404(project_id)
-    if project.user_id != current_user.id and current_user not in project.members:
+    if not is_project_member(project, current_user):
         flash('Access denied.', 'danger')
         return redirect(url_for('dashboard'))
     tasks = project.tasks.order_by(Task.created_at.desc()).all()
     task_stats = {'todo': len([t for t in tasks if t.status == 'todo']), 'in_progress': len([t for t in tasks if t.status == 'in_progress']), 'done': len([t for t in tasks if t.status == 'done']), 'total': len(tasks)}
     form = AddMemberForm()
-    return render_template('project_detail.html', project=project, tasks=tasks, task_stats=task_stats, form=form)
+    member_permissions = {
+        perm.user_id: perm
+        for perm in ProjectMemberPermission.query.filter_by(project_id=project.id).all()
+    }
+    return render_template(
+        'project_detail.html',
+        project=project,
+        tasks=tasks,
+        task_stats=task_stats,
+        form=form,
+        is_owner=(project.user_id == current_user.id),
+        can_edit_tasks=user_can_edit_tasks(project, current_user),
+        member_permissions=member_permissions,
+    )
 
 @app.route('/project/<int:project_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -141,7 +175,10 @@ def delete_project(project_id):
 @login_required
 def create_task(project_id):
     project = Project.query.get_or_404(project_id)
-    if project.user_id != current_user.id:
+    if not is_project_member(project, current_user):
+        flash('Access denied.', 'danger')
+        return redirect(url_for('dashboard'))
+    if not user_can_edit_tasks(project, current_user):
         flash('Access denied.', 'danger')
         return redirect(url_for('dashboard'))
     form = TaskForm()
@@ -164,24 +201,40 @@ def create_task(project_id):
             db.session.commit()
             flash('Task created!', 'success')
             return redirect(url_for('task_detail', task_id=task.id))
-    return render_template('task_form.html', form=form, project=project, title='Create Task')
+    return render_template(
+        'task_form.html',
+        form=form,
+        project=project,
+        title='Create Task',
+        can_edit_tasks=user_can_edit_tasks(project, current_user),
+    )
 
 @app.route('/task/<int:task_id>')
 @login_required
 def task_detail(task_id):
     task = Task.query.get_or_404(task_id)
-    if task.project.user_id != current_user.id and current_user not in task.project.members:
+    if not is_project_member(task.project, current_user):
         flash('Access denied.', 'danger')
         return redirect(url_for('dashboard'))
     subtasks_list = task.subtasks.all()
     completion = task.get_completion_percentage()
-    return render_template('task_detail.html', task=task, subtasks_list=subtasks_list, completion=completion)
+    return render_template(
+        'task_detail.html',
+        task=task,
+        subtasks_list=subtasks_list,
+        completion=completion,
+        can_edit_tasks=user_can_modify_task(task, current_user),
+        is_owner=(task.project.user_id == current_user.id),
+    )
 
 @app.route('/task/<int:task_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_task(task_id):
     task = Task.query.get_or_404(task_id)
-    if task.project.user_id != current_user.id:
+    if not is_project_member(task.project, current_user):
+        flash('Access denied.', 'danger')
+        return redirect(url_for('dashboard'))
+    if not user_can_modify_task(task, current_user):
         flash('Access denied.', 'danger')
         return redirect(url_for('dashboard'))
     form = TaskForm(obj=task)
@@ -199,13 +252,32 @@ def edit_task(task_id):
         db.session.commit()
         flash('Task updated!', 'success')
         return redirect(url_for('task_detail', task_id=task.id))
-    return render_template('task_form.html', form=form, project=task.project, title='Edit Task', task=task)
+    return render_template(
+        'task_form.html',
+        form=form,
+        project=task.project,
+        title='Edit Task',
+        task=task,
+        can_edit_tasks=user_can_edit_tasks(task.project, current_user),
+    )
+
+@app.route('/task/<int:task_id>/lock', methods=['POST'])
+@login_required
+def toggle_task_lock(task_id):
+    task = Task.query.get_or_404(task_id)
+    if task.project.user_id != current_user.id:
+        flash('Access denied.', 'danger')
+        return redirect(url_for('dashboard'))
+    task.locked = not task.locked
+    db.session.commit()
+    flash('Task locked.' if task.locked else 'Task unlocked.', 'info')
+    return redirect(url_for('task_detail', task_id=task.id))
 
 @app.route('/task/<int:task_id>/status/<new_status>', methods=['POST'])
 @login_required
 def change_task_status(task_id, new_status):
     task = Task.query.get_or_404(task_id)
-    if task.project.user_id != current_user.id:
+    if not user_can_modify_task(task, current_user):
         return jsonify({'error': 'Access denied'}), 403
     if new_status not in ['todo', 'in_progress', 'done']:
         return jsonify({'error': 'Invalid status'}), 400
@@ -218,7 +290,7 @@ def change_task_status(task_id, new_status):
 @login_required
 def delete_task(task_id):
     task = Task.query.get_or_404(task_id)
-    if task.project.user_id != current_user.id:
+    if not user_can_modify_task(task, current_user):
         flash('Access denied.', 'danger')
         return redirect(url_for('dashboard'))
     project_id = task.project_id
@@ -231,7 +303,7 @@ def delete_task(task_id):
 @login_required
 def add_subtask(task_id):
     task = Task.query.get_or_404(task_id)
-    if task.project.user_id != current_user.id:
+    if not user_can_modify_task(task, current_user):
         flash('Access denied.', 'danger')
         return redirect(url_for('dashboard'))
     title = request.form.get('title', '').strip()
@@ -249,7 +321,7 @@ def add_subtask(task_id):
 def toggle_subtask(subtask_id):
     subtask = Subtask.query.get_or_404(subtask_id)
     task = subtask.task
-    if task.project.user_id != current_user.id:
+    if not user_can_modify_task(task, current_user):
         flash('Access denied.', 'danger')
         return redirect(url_for('dashboard'))
     subtask.completed = not subtask.completed
@@ -263,7 +335,7 @@ def toggle_subtask(subtask_id):
 def delete_subtask(subtask_id):
     subtask = Subtask.query.get_or_404(subtask_id)
     task = subtask.task
-    if task.project.user_id != current_user.id:
+    if not user_can_modify_task(task, current_user):
         flash('Access denied.', 'danger')
         return redirect(url_for('dashboard'))
     task_id = task.id
@@ -300,8 +372,37 @@ def add_member(project_id):
         flash(f'{user.username} is already a member.', 'info')
     else:
         project.members.append(user)
-        db.session.commit()
-        flash(f'✅ {user.username} added to project!', 'success')
+    permissions = get_member_permissions(project.id, user.id)
+    if permissions is None:
+        permissions = ProjectMemberPermission(project_id=project.id, user_id=user.id)
+        db.session.add(permissions)
+    db.session.commit()
+    flash(f'✅ {user.username} added to project!', 'success')
+    return redirect(url_for('project_detail', project_id=project.id))
+
+@app.route('/project/<int:project_id>/member/<int:user_id>/permissions', methods=['POST'])
+@login_required
+def update_member_permissions(project_id, user_id):
+    project = Project.query.get_or_404(project_id)
+    if project.user_id != current_user.id:
+        flash('Access denied.', 'danger')
+        return redirect(url_for('dashboard'))
+    if user_id == project.user_id:
+        flash('Project owner permissions cannot be changed.', 'warning')
+        return redirect(url_for('project_detail', project_id=project.id))
+    user = User.query.get_or_404(user_id)
+    if user not in project.members:
+        flash('User is not a project member.', 'danger')
+        return redirect(url_for('project_detail', project_id=project.id))
+    permissions = get_member_permissions(project.id, user.id)
+    if permissions is None:
+        permissions = ProjectMemberPermission(project_id=project.id, user_id=user.id)
+        db.session.add(permissions)
+    permissions.can_edit_tasks = bool(request.form.get('can_edit_tasks'))
+    permissions.can_create_tasks = permissions.can_edit_tasks
+    permissions.can_assign_tasks = permissions.can_edit_tasks
+    db.session.commit()
+    flash(f'Permissions updated for {user.username}.', 'success')
     return redirect(url_for('project_detail', project_id=project.id))
 
 @app.route('/project/<int:project_id>/remove-member/<int:user_id>', methods=['POST'])
@@ -314,12 +415,20 @@ def remove_member(project_id, user_id):
     user = User.query.get_or_404(user_id)
     if user in project.members:
         project.members.remove(user)
+        permissions = get_member_permissions(project.id, user.id)
+        if permissions is not None:
+            db.session.delete(permissions)
         db.session.commit()
         flash(f'{user.username} removed from project.', 'success')
     return redirect(url_for('project_detail', project_id=project.id))
 
 with app.app_context():
     db.create_all()
+    inspector = inspect(db.engine)
+    task_columns = [column['name'] for column in inspector.get_columns('tasks')]
+    if 'locked' not in task_columns:
+        db.session.execute(text('ALTER TABLE tasks ADD COLUMN locked BOOLEAN DEFAULT 0'))
+        db.session.commit()
     print('✅ Database ready!')
 
 if __name__ == '__main__':

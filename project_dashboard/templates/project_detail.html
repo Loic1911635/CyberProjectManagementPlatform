@@ -259,6 +259,42 @@
         transform: scale(1.2);
     }
 
+    .permissions-card {
+        margin-top: 20px;
+        padding-top: 10px;
+        border-top: 1px dashed rgba(102, 126, 234, 0.2);
+    }
+
+    .permissions-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 0;
+        border-bottom: 1px dashed rgba(102, 126, 234, 0.1);
+    }
+
+    .permissions-row:last-child {
+        border-bottom: none;
+    }
+
+    .permissions-name {
+        font-weight: 600;
+        min-width: 140px;
+    }
+
+    .permissions-row label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin: 0;
+        font-size: 12px;
+        font-weight: 500;
+    }
+
+    .permissions-row input[type="checkbox"] {
+        margin: 0;
+    }
     .task-table {
         width: 100%;
         border-collapse: collapse;
@@ -332,10 +368,12 @@
             {% endif %}
         </div>
         <div class="header-actions">
-            {% if project.user_id == current_user.id %}
+            {% if can_edit_tasks %}
             <a href="{{ url_for('create_task', project_id=project.id) }}" class="btn">
                 <i class="fas fa-plus"></i> New Task
             </a>
+            {% endif %}
+            {% if is_owner %}
             <a href="{{ url_for('edit_project', project_id=project.id) }}" class="btn btn-secondary">
                 <i class="fas fa-edit"></i> Edit
             </a>
@@ -357,7 +395,7 @@
         </div>
 
         <!-- Add Member Form -->
-        {% if project.user_id == current_user.id %}
+        {% if is_owner %}
         <div class="form-group">
             <label for="member-search">Add Team Member</label>
             <div class="search-input-wrapper" style="position: relative;">
@@ -378,20 +416,37 @@
                 </div>
 
                 <!-- Members -->
-{% for member in project.members %}
+                {% for member in project.members %}
                 <div class="member-item">
                     <span>{{ member.username }}</span>
-                    {% if project.user_id == current_user.id %}
-                    <form method="POST" action="{{ url_for('remove_member', project_id=project.id, user_id=member.id) }}" style="display: inline;" onsubmit="return confirm('Remove {{ member.username }} from project?');">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="member-remove-btn" title="Remove member">
-                            ✕
-                        </button>
-                    </form>
+                    {% if is_owner %}
+                        <form method="POST" action="{{ url_for('remove_member', project_id=project.id, user_id=member.id) }}" style="display: inline;" onsubmit="return confirm('Remove {{ member.username }} from project?');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="member-remove-btn" title="Remove member">
+                                ✕
+                            </button>
+                        </form>
                     {% endif %}
                 </div>
                 {% endfor %}
             </div>
+            {% if is_owner and project.members %}
+            <div class="permissions-card">
+                <div style="font-weight: 600; margin-bottom: 8px; color: var(--text-dark);">Member Permissions</div>
+                {% for member in project.members %}
+                {% set perms = member_permissions.get(member.id) %}
+                <form method="POST" action="{{ url_for('update_member_permissions', project_id=project.id, user_id=member.id) }}" class="permissions-row">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <span class="permissions-name">{{ member.username }}</span>
+                    <label>
+                        <input type="checkbox" name="can_edit_tasks" {% if perms and perms.can_edit_tasks %}checked{% endif %}>
+                        Can edit tasks (create, edit, delete, assign)
+                    </label>
+                    <button type="submit" class="btn btn-secondary btn-sm">Save</button>
+                </form>
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
     </div>
 
@@ -420,6 +475,9 @@
                 <tr>
                     <td>
                         <a href="{{ url_for('task_detail', task_id=task.id) }}">{{ task.title }}</a>
+                        {% if task.locked %}
+                        <i class="fas fa-lock" title="Locked" style="margin-left: 6px; color: var(--danger);"></i>
+                        {% endif %}
                     </td>
                     <td>
                         {% if task.status == 'todo' %}
@@ -450,7 +508,7 @@
         {% else %}
         <p style="color: var(--text-muted); text-align: center; padding: 20px;">
             <i class="fas fa-inbox"></i> No tasks yet.
-            {% if project.user_id == current_user.id %}
+            {% if can_edit_tasks %}
                 <a href="{{ url_for('create_task', project_id=project.id) }}" style="color: var(--primary); text-decoration: none; font-weight: 600;">Create one</a>!
             {% endif %}
         </p>
@@ -458,7 +516,7 @@
     </div>
 </div>
 
-{% if project.user_id == current_user.id %}
+{% if is_owner %}
 <!-- Hidden form for member addition -->
 <form method="POST" id="add-member-form" action="{{ url_for('add_member', project_id=project.id) }}" style="display: none;">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
